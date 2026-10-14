@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5ded2" />
+    <meta name="description" content="A tiny Maltese keeping you company in a cozy little room." />
+    <title>A Little Somewhere</title>
+  </head>
+  <body>
+    <main class="app">
+      <header class="title-bar">
+        <div>
+          <p class="eyebrow">A quiet little companion</p>
+          <h1>A Little Somewhere</h1>
+        </div>
+        <p class="hint">Tap somewhere in the room</p>
+      </header>
+      <section class="room-frame" aria-label="Virtual pet room">
+        <canvas
+          id="room"
+          role="img"
+          aria-label="A tiny white Maltese relaxing in a cozy illustrated room. Tap or click to get the dog's attention."
+        ></canvas>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+

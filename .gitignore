@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+coverage/
+*.local
+Open A Little Somewhere.lnk
+Open A Little Somewhere.cmd
+
+
