@@ -2,22 +2,28 @@
 
 A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2D. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in its room.
 
-> Work in progress — current milestone: V0.2a illustrated donut bed integration.
+> Work in progress — current milestone: V0.2c walk-cycle experiment and warm cream tile room.
 
 ## Work in progress
 
 ### Current desktop landscape
 
-![A Little Somewhere with the illustrated donut bed at desktop landscape size](docs/images/v0.2a-donut-art-desktop.png)
+![A Little Somewhere V0.2c with the Maltese walking in the warm cream tile room](docs/images/v0.2c-cream-tile-desktop.png)
 
 ### Current mobile portrait
 
-<img src="docs/images/v0.2a-donut-art-mobile.png" alt="A Little Somewhere with the illustrated donut bed at mobile portrait size" width="390">
+<img src="docs/images/v0.2c-cream-tile-mobile.png" alt="A Little Somewhere V0.2c in the warm cream tile room at mobile portrait size" width="390">
 
 These are visual checkpoints, not final artwork. New desktop and mobile captures will be added as the room and character evolve.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
+
+#### V0.2a — illustrated donut bed
+
+![A Little Somewhere with the illustrated donut bed at desktop landscape size](docs/images/v0.2a-donut-art-desktop.png)
+
+<img src="docs/images/v0.2a-donut-art-mobile.png" alt="A Little Somewhere with the illustrated donut bed at mobile portrait size" width="390">
 
 #### V0.2 — provisional Maltese poses
 
@@ -43,6 +49,8 @@ Then open the local address shown by Vite. To run all checks:
 ```powershell
 npm run check
 ```
+
+The warm cream tile room is the current default. Add `?room=wood` to the local URL to review the preserved wood-floor scene.
 
 The project intentionally uses only TypeScript, Vite, Vitest, and browser Canvas APIs. There is no backend or multiplayer service.
 

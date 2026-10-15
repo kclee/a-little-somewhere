@@ -1,12 +1,13 @@
 import './style.css';
 import { PointerInput } from './input/PointerInput';
 import { CanvasRenderer } from './render/CanvasRenderer';
+import { resolveRoomScene } from './render/RoomScene';
 import { PetSimulation } from './simulation/PetSimulation';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#room');
 if (!canvas) throw new Error('Room canvas was not found.');
 
-const renderer = new CanvasRenderer(canvas);
+const renderer = new CanvasRenderer(canvas, resolveRoomScene(window.location.search));
 const simulation = new PetSimulation();
 
 const resize = (): void => {

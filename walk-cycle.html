@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5ded2" />
+    <meta
+      name="description"
+      content="A local preview tool for evaluating the A Little Somewhere Maltese walk cycle."
+    />
+    <title>Walk Cycle Previewer · A Little Somewhere</title>
+  </head>
+  <body>
+    <main class="preview-app">
+      <header class="preview-header">
+        <div>
+          <p class="eyebrow">A Little Somewhere · Art review</p>
+          <h1>Walk Cycle Animation Previewer</h1>
+          <p class="intro">Four-frame candidate beside the current procedural walk treatment.</p>
+        </div>
+        <a href="./" class="back-link">Back to room</a>
+      </header>
+
+      <section class="control-panel" aria-label="Animation controls">
+        <div class="button-row">
+          <button id="previous-frame" type="button">Previous</button>
+          <button id="play-pause" class="primary" type="button">Pause</button>
+          <button id="next-frame" type="button">Next</button>
+        </div>
+
+        <label class="speed-control" for="animation-speed">
+          <span>Speed</span>
+          <input id="animation-speed" type="range" min="2" max="12" step="1" value="6" />
+          <output id="speed-output" for="animation-speed">6 FPS</output>
+        </label>
+
+        <label class="check-control">
+          <input id="checkerboard-toggle" type="checkbox" checked />
+          <span>Checkerboard background</span>
+        </label>
+
+        <p id="frame-number" class="frame-number" aria-live="polite">Frame 1 of 4</p>
+      </section>
+
+      <section id="comparison" class="comparison checkerboard" aria-label="Walk animation comparison">
+        <figure class="preview-card">
+          <figcaption>
+            <strong>Candidate sprite sheet</strong>
+            <span>Four discrete frames · shared feet anchor</span>
+          </figcaption>
+          <canvas id="sprite-preview" aria-label="Four-frame Maltese walk-cycle preview"></canvas>
+        </figure>
+
+        <figure class="preview-card">
+          <figcaption>
+            <strong>Current game treatment</strong>
+            <span>One side pose · procedural bob, squash, and tilt</span>
+          </figcaption>
+          <canvas id="procedural-preview" aria-label="Current procedural Maltese walking preview"></canvas>
+        </figure>
+      </section>
+
+      <section class="quality-report" aria-labelledby="quality-heading">
+        <div>
+          <p class="eyebrow">Automated image audit</p>
+          <h2 id="quality-heading">Review notes</h2>
+        </div>
+        <ul>
+          <li><strong>Duplicate-looking:</strong> frames 2 and 4 are the closest pair, but not exact duplicates.</li>
+          <li><strong>Scaling:</strong> silhouette width varies from 469–496 px, mostly from leg and tail extension.</li>
+          <li><strong>Background:</strong> each frame contains 52–69 isolated nontransparent artifact pixels outside the main dog bounds.</li>
+          <li><strong>Feet anchor:</strong> frame baselines are 606, 606, 607, and 607 px; measured jitter is 1 px.</li>
+        </ul>
+      </section>
+    </main>
+    <script type="module" src="/src/walk-cycle.ts"></script>
+  </body>
+</html>

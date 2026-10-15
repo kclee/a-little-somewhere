@@ -1,21 +1,33 @@
 import type { PetModel, WorldSize } from '../core/types';
+import { WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
   MALTESE_SPRITES,
   MalteseSpriteSet,
   selectMaltesePose,
   shouldMirrorMaltesePose,
 } from './MalteseSpriteSet';
+import {
+  getWalkCycleScale,
+  MalteseWalkCycle,
+  shouldMirrorWalkCycle,
+} from './MalteseWalkCycle';
+import { getPetShadowLayout } from './PetShadow';
+import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
 import { ScenePropAssets } from './ScenePropAssets';
 import { drawSceneProps } from './SceneProps';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
   private readonly malteseSprites = new MalteseSpriteSet();
+  private readonly malteseWalkCycle = new MalteseWalkCycle();
   private readonly scenePropAssets = new ScenePropAssets();
   private width = 1;
   private height = 1;
 
-  public constructor(private readonly canvas: HTMLCanvasElement) {
+  public constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly scene: RoomSceneConfig = ROOM_SCENES.creamTile,
+  ) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas 2D is not supported in this browser.');
     this.context = context;
@@ -43,35 +55,85 @@ export class CanvasRenderer {
     const floorY = h * 0.58;
 
     const wall = ctx.createLinearGradient(0, 0, 0, floorY);
-    wall.addColorStop(0, '#f9eadf');
-    wall.addColorStop(1, '#efd9cc');
+    wall.addColorStop(0, this.scene.wallTopColor);
+    wall.addColorStop(1, this.scene.wallBottomColor);
     ctx.fillStyle = wall;
     ctx.fillRect(0, 0, w, floorY);
 
-    const floor = ctx.createLinearGradient(0, floorY, 0, h);
-    floor.addColorStop(0, '#c99577');
-    floor.addColorStop(1, '#a86f55');
-    ctx.fillStyle = floor;
-    ctx.fillRect(0, floorY, w, h - floorY);
-
-    ctx.strokeStyle = 'rgb(105 69 54 / 17%)';
-    ctx.lineWidth = 1;
-    const boardHeight = Math.max(34, h * 0.075);
-    for (let y = floorY + boardHeight; y < h; y += boardHeight) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
+    this.drawFloor(floorY);
 
     this.drawWindow(w * 0.08, h * 0.1, Math.min(w * 0.38, 210), Math.min(h * 0.28, 170), elapsed);
     this.drawShelf(w, h);
-    drawSceneProps(ctx, { width: w, height: h }, this.scenePropAssets.getDonutPetBed());
+    drawSceneProps(ctx, { width: w, height: h }, this.scenePropAssets.getImages());
 
-    ctx.fillStyle = '#b9856c';
+    ctx.fillStyle = this.scene.baseboardColor;
     ctx.fillRect(0, floorY - 8, w, 10);
     ctx.fillStyle = 'rgb(255 248 237 / 45%)';
     ctx.fillRect(0, floorY - 8, w, 2);
+  }
+
+  private drawFloor(floorY: number): void {
+    const ctx = this.context;
+    const floorHeight = this.height - floorY;
+    const floor = ctx.createLinearGradient(0, floorY, 0, this.height);
+    floor.addColorStop(0, this.scene.floor.topColor);
+    floor.addColorStop(1, this.scene.floor.bottomColor);
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, floorY, this.width, floorHeight);
+
+    if (this.scene.floor.kind === 'wood') {
+      ctx.strokeStyle = this.scene.floor.seamColor;
+      ctx.lineWidth = 1;
+      const boardHeight = Math.max(34, this.height * 0.075);
+      for (let y = floorY + boardHeight; y < this.height; y += boardHeight) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(this.width, y);
+        ctx.stroke();
+      }
+      return;
+    }
+
+    const vanishingX = this.width * 0.5;
+    const bottomTileWidth = Math.max(72, Math.min(122, this.width * 0.14));
+    // The implied vanishing point sits above the visible floor, so the back
+    // row remains readable as tile instead of collapsing into a line fan.
+    const perspectiveInset = 0.45;
+    ctx.strokeStyle = this.scene.floor.groutColor;
+    ctx.lineWidth = 1;
+
+    const halfLineCount = Math.ceil(this.width / bottomTileWidth) + 2;
+    for (let index = -halfLineCount; index <= halfLineCount; index += 1) {
+      const bottomX = vanishingX + index * bottomTileWidth;
+      const topX = vanishingX + (bottomX - vanishingX) * perspectiveInset;
+      ctx.beginPath();
+      ctx.moveTo(topX, floorY);
+      ctx.lineTo(bottomX, this.height);
+      ctx.stroke();
+    }
+
+    const rowCount = Math.max(5, Math.round(floorHeight / 68));
+    for (let row = 1; row < rowCount; row += 1) {
+      const depth = row / rowCount;
+      const y = floorY + floorHeight * Math.pow(depth, 1.45);
+      ctx.strokeStyle = this.scene.floor.groutColor;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(this.width, y);
+      ctx.stroke();
+      ctx.strokeStyle = this.scene.floor.highlightColor;
+      ctx.beginPath();
+      ctx.moveTo(0, y + 1);
+      ctx.lineTo(this.width, y + 1);
+      ctx.stroke();
+    }
+
+    const satin = ctx.createLinearGradient(0, floorY, 0, this.height);
+    satin.addColorStop(0, 'rgb(255 253 243 / 12%)');
+    satin.addColorStop(0.48, 'rgb(255 253 243 / 4%)');
+    satin.addColorStop(1, 'rgb(150 128 98 / 4%)');
+    ctx.fillStyle = satin;
+    ctx.fillRect(0, floorY, this.width, floorHeight);
   }
 
   private drawWindow(x: number, y: number, width: number, height: number, elapsed: number): void {
@@ -145,9 +207,42 @@ export class CanvasRenderer {
   }
 
   private drawPet(pet: PetModel, elapsed: number): void {
+    if (pet.state === 'walk' && this.drawWalkCyclePet(pet)) return;
+
     if (!this.drawSpritePet(pet, elapsed)) {
       this.drawPlaceholderPet(pet, elapsed);
     }
+  }
+
+  private drawWalkCyclePet(pet: PetModel): boolean {
+    const image = this.malteseWalkCycle.getImage();
+    if (!image) return false;
+
+    const ctx = this.context;
+    const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
+    const sourceScale = getWalkCycleScale(spriteSize);
+    const mirrorX = shouldMirrorWalkCycle(pet.facing) ? -1 : 1;
+
+    this.drawPetShadow(pet, spriteSize);
+
+    ctx.save();
+    ctx.translate(pet.position.x, pet.position.y);
+    ctx.scale(mirrorX, 1);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(
+      image,
+      this.malteseWalkCycle.getSourceX(pet.stateElapsed),
+      0,
+      WALK_SHEET.frameWidth,
+      WALK_SHEET.frameHeight,
+      -WALK_SHEET.feetAnchor.x * sourceScale,
+      -WALK_SHEET.feetAnchor.y * sourceScale,
+      WALK_SHEET.frameWidth * sourceScale,
+      WALK_SHEET.frameHeight * sourceScale,
+    );
+    ctx.restore();
+    return true;
   }
 
   private drawSpritePet(pet: PetModel, elapsed: number): boolean {
@@ -168,14 +263,7 @@ export class CanvasRenderer {
     const scaleY = sitting ? 0.9 : walking ? 1 - Math.abs(stepPhase) * 0.012 : 1;
     const rotation = walking ? stepPhase * 0.012 : attentive ? Math.sin(elapsed * 1.7) * 0.006 : 0;
 
-    ctx.save();
-    ctx.translate(pet.position.x, pet.position.y + 2);
-    ctx.scale(1, 0.26);
-    ctx.fillStyle = 'rgb(73 47 39 / 17%)';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, spriteSize * (sitting ? 0.25 : 0.3), spriteSize * 0.12, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    this.drawPetShadow(pet, spriteSize);
 
     ctx.save();
     ctx.translate(pet.position.x, pet.position.y + bob);
@@ -200,6 +288,19 @@ export class CanvasRenderer {
     );
     ctx.restore();
     return true;
+  }
+
+  private drawPetShadow(pet: PetModel, spriteSize: number): void {
+    const ctx = this.context;
+    const shadow = getPetShadowLayout(pet.state, spriteSize);
+    ctx.save();
+    ctx.translate(pet.position.x + shadow.offsetX, pet.position.y + shadow.offsetY);
+    ctx.scale(1, 0.26);
+    ctx.fillStyle = 'rgb(73 47 39 / 17%)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, shadow.radiusX, shadow.radiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   private drawPlaceholderPet(pet: PetModel, elapsed: number): void {

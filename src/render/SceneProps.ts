@@ -1,62 +1,80 @@
 import type { WorldSize } from '../core/types';
-import { DONUT_PET_BED } from './ScenePropAssets';
+import {
+  DONUT_PET_BED,
+  FROG_TOY,
+  PET_HOUSE,
+  type ScenePropImages,
+  type ScenePropSpriteDefinition,
+} from './ScenePropAssets';
 
 export interface ScenePropLayout {
   cushion: { x: number; y: number; width: number; height: number };
   house: { x: number; baseline: number; width: number; height: number };
-  frog: { x: number; baseline: number; size: number };
+  frog: { x: number; baseline: number; width: number; height: number };
 }
 
 export function getScenePropLayout(world: WorldSize): ScenePropLayout {
   const compact = world.width < 560;
   const petGround = world.height * 0.78;
   const cushionAspect = DONUT_PET_BED.crop.height / DONUT_PET_BED.crop.width;
+  const houseAspect = PET_HOUSE.crop.height / PET_HOUSE.crop.width;
+  const frogAspect = FROG_TOY.crop.height / FROG_TOY.crop.width;
 
   if (compact) {
-    const houseWidth = clamp(world.width * 0.34, 106, 132);
+    const houseWidth = clamp(world.width * 0.34, 112, 128);
+    const houseHeight = houseWidth * houseAspect;
+    const houseX = world.width - houseWidth / 2 - 8;
+    const houseBaseline = petGround - 6;
     const cushionWidth = clamp(world.width * 0.5, 158, 194);
     const cushionHeight = cushionWidth * cushionAspect;
+    const frogWidth = clamp(world.width * 0.15, 52, 62);
     return {
       cushion: {
-        x: world.width * 0.35,
+        x: world.width * 0.34,
         y: Math.min(petGround + 42, world.height - cushionHeight / 2 - 12),
         width: cushionWidth,
         height: cushionHeight,
       },
       house: {
-        x: world.width - houseWidth * 0.54 - 10,
-        baseline: petGround + 8,
+        x: houseX,
+        baseline: houseBaseline,
         width: houseWidth,
-        height: houseWidth * 0.94,
+        height: houseHeight,
       },
       frog: {
-        x: world.width - houseWidth * 0.86 - 10,
-        baseline: petGround + 13,
-        size: clamp(world.width * 0.075, 24, 29),
+        x: houseX,
+        baseline: houseBaseline + 4,
+        width: frogWidth,
+        height: frogWidth * frogAspect,
       },
     };
   }
 
-  const houseWidth = clamp(world.width * 0.16, 172, 220);
+  const houseWidth = clamp(world.width * 0.18, 196, 240);
+  const houseHeight = houseWidth * houseAspect;
+  const houseX = world.width - houseWidth / 2 - 36;
+  const houseBaseline = petGround - 6;
   const cushionWidth = clamp(world.width * 0.28, 280, 360);
   const cushionHeight = cushionWidth * cushionAspect;
+  const frogWidth = clamp(world.width * 0.07, 76, 96);
   return {
     cushion: {
-      x: world.width * 0.51,
+      x: world.width * 0.48,
       y: Math.min(petGround + 52, world.height - cushionHeight / 2 - 12),
       width: cushionWidth,
       height: cushionHeight,
     },
     house: {
-      x: world.width - houseWidth * 0.64 - 30,
-      baseline: petGround + 18,
+      x: houseX,
+      baseline: houseBaseline,
       width: houseWidth,
-      height: houseWidth * 0.82,
+      height: houseHeight,
     },
     frog: {
-      x: world.width - houseWidth * 0.98 - 30,
-      baseline: petGround + 22,
-      size: clamp(world.width * 0.025, 30, 38),
+      x: houseX,
+      baseline: houseBaseline + 5,
+      width: frogWidth,
+      height: frogWidth * frogAspect,
     },
   };
 }
@@ -64,25 +82,35 @@ export function getScenePropLayout(world: WorldSize): ScenePropLayout {
 export function drawSceneProps(
   context: CanvasRenderingContext2D,
   world: WorldSize,
-  donutPetBed: HTMLImageElement | null,
+  images: ScenePropImages,
 ): void {
   const layout = getScenePropLayout(world);
-  drawPetHouse(context, layout.house);
-  if (donutPetBed) {
-    drawDonutPetBed(context, layout.cushion, donutPetBed);
+  if (images.petHouse) {
+    drawScenePropSprite(context, layout.house, images.petHouse, PET_HOUSE);
+  } else {
+    drawPetHouseFallback(context, layout.house);
+  }
+  if (images.donutPetBed) {
+    drawScenePropSprite(context, layout.cushion, images.donutPetBed, DONUT_PET_BED);
   } else {
     drawDonutCushionFallback(context, layout.cushion);
   }
-  drawFrogToy(context, layout.frog);
+  if (images.frogToy) {
+    drawScenePropSprite(context, layout.frog, images.frogToy, FROG_TOY);
+  } else {
+    drawFrogToyFallback(context, layout.frog);
+  }
 }
 
-function drawDonutPetBed(
+function drawScenePropSprite(
   context: CanvasRenderingContext2D,
-  cushion: ScenePropLayout['cushion'],
+  target: { x: number; width: number; height: number; y?: number; baseline?: number },
   image: HTMLImageElement,
+  definition: ScenePropSpriteDefinition,
 ): void {
-  const { x, y, width, height } = cushion;
-  const crop = DONUT_PET_BED.crop;
+  const { x, width, height } = target;
+  const y = target.y ?? (target.baseline ?? 0) - height / 2;
+  const crop = definition.crop;
 
   context.save();
   context.imageSmoothingEnabled = true;
@@ -94,7 +122,7 @@ function drawDonutPetBed(
     crop.width,
     crop.height,
     x - width / 2,
-    y - height / 2,
+    y - (target.y === undefined ? 0 : height / 2),
     width,
     height,
   );
@@ -159,7 +187,7 @@ function drawDonutCushionFallback(
   context.restore();
 }
 
-function drawPetHouse(context: CanvasRenderingContext2D, house: ScenePropLayout['house']): void {
+function drawPetHouseFallback(context: CanvasRenderingContext2D, house: ScenePropLayout['house']): void {
   const { x, baseline, width, height } = house;
   const left = x - width / 2;
   const top = baseline - height;
@@ -235,12 +263,12 @@ function drawPetHouse(context: CanvasRenderingContext2D, house: ScenePropLayout[
   context.stroke();
 }
 
-function drawFrogToy(context: CanvasRenderingContext2D, frog: ScenePropLayout['frog']): void {
-  const { x, baseline, size } = frog;
+function drawFrogToyFallback(context: CanvasRenderingContext2D, frog: ScenePropLayout['frog']): void {
+  const { x, baseline, width } = frog;
 
   context.save();
   context.translate(x, baseline);
-  context.scale(size / 32, size / 32);
+  context.scale(width / 32, width / 32);
   context.lineCap = 'round';
   context.lineJoin = 'round';
 
