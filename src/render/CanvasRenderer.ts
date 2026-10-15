@@ -6,6 +6,7 @@ import {
   MalteseSpriteSet,
   selectMaltesePose,
   shouldMirrorMaltesePose,
+  type MaltesePose,
 } from './MalteseSpriteSet';
 import {
   getWalkCycleScale,
@@ -507,7 +508,7 @@ export class CanvasRenderer {
     const scaleY = sitting ? 0.9 : walking ? 1 - Math.abs(stepPhase) * 0.012 : 1;
     const rotation = walking ? stepPhase * 0.012 : attentive ? Math.sin(elapsed * 1.7) * 0.006 : 0;
 
-    this.drawPetShadow(pet, spriteSize);
+    this.drawPetShadow(pet, spriteSize, pose);
 
     ctx.save();
     ctx.translate(pet.position.x, pet.position.y + bob);
@@ -534,9 +535,9 @@ export class CanvasRenderer {
     return true;
   }
 
-  private drawPetShadow(pet: PetModel, spriteSize: number): void {
+  private drawPetShadow(pet: PetModel, spriteSize: number, pose?: MaltesePose): void {
     const ctx = this.context;
-    const shadow = getPetShadowLayout(pet.state, spriteSize);
+    const shadow = getPetShadowLayout(pet.state, spriteSize, pose);
     ctx.save();
     ctx.translate(pet.position.x + shadow.offsetX, pet.position.y + shadow.offsetY);
     ctx.scale(1, 0.26);
