@@ -1,7 +1,14 @@
 import type { PetModel, WorldSize } from '../core/types';
+import {
+  MALTESE_SPRITES,
+  MalteseSpriteSet,
+  selectMaltesePose,
+  shouldMirrorMaltesePose,
+} from './MalteseSpriteSet';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
+  private readonly malteseSprites = new MalteseSpriteSet();
   private width = 1;
   private height = 1;
 
@@ -150,6 +157,64 @@ export class CanvasRenderer {
   }
 
   private drawPet(pet: PetModel, elapsed: number): void {
+    if (!this.drawSpritePet(pet, elapsed)) {
+      this.drawPlaceholderPet(pet, elapsed);
+    }
+  }
+
+  private drawSpritePet(pet: PetModel, elapsed: number): boolean {
+    const pose = selectMaltesePose(pet);
+    const image = this.malteseSprites.get(pose);
+    if (!image) return false;
+
+    const ctx = this.context;
+    const definition = MALTESE_SPRITES[pose];
+    const walking = pet.state === 'walk';
+    const sitting = pet.state === 'sit';
+    const attentive = pet.state === 'attention';
+    const stepPhase = Math.sin(pet.stateElapsed * 9);
+    const bob = walking ? Math.abs(stepPhase) * -2.4 : Math.sin(elapsed * 2.1) * 0.65;
+    const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
+    const sourceScale = spriteSize / definition.canvasSize;
+    const mirrorX = shouldMirrorMaltesePose(pose, pet.facing) ? -1 : 1;
+    const scaleY = sitting ? 0.9 : walking ? 1 - Math.abs(stepPhase) * 0.012 : 1;
+    const rotation = walking ? stepPhase * 0.012 : attentive ? Math.sin(elapsed * 1.7) * 0.006 : 0;
+
+    ctx.save();
+    ctx.translate(pet.position.x, pet.position.y + 2);
+    ctx.scale(1, 0.26);
+    ctx.fillStyle = 'rgb(73 47 39 / 17%)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, spriteSize * (sitting ? 0.25 : 0.3), spriteSize * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(pet.position.x, pet.position.y + bob);
+    ctx.rotate(rotation);
+    ctx.scale(mirrorX, scaleY);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const fullLeft = -spriteSize * definition.anchor[0];
+    const fullTop = -spriteSize * definition.anchor[1];
+    const crop = definition.crop;
+    ctx.drawImage(
+      image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      fullLeft + crop.x * sourceScale,
+      fullTop + crop.y * sourceScale,
+      crop.width * sourceScale,
+      crop.height * sourceScale,
+    );
+    ctx.restore();
+    return true;
+  }
+
+  private drawPlaceholderPet(pet: PetModel, elapsed: number): void {
     const ctx = this.context;
     const walking = pet.state === 'walk';
     const sitting = pet.state === 'sit';
