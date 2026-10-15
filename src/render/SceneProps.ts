@@ -1,8 +1,9 @@
-import type { WorldSize } from '../core/types';
+import type { Point, WorldSize } from '../core/types';
 import {
   DONUT_PET_BED,
   FROG_TOY,
   PET_HOUSE,
+  PET_HOUSE_OCCUPIED,
   type ScenePropImages,
   type ScenePropSpriteDefinition,
 } from './ScenePropAssets';
@@ -11,6 +12,26 @@ export interface ScenePropLayout {
   cushion: { x: number; y: number; width: number; height: number };
   house: { x: number; baseline: number; width: number; height: number };
   frog: { x: number; baseline: number; width: number; height: number };
+}
+
+export interface FrogVisual {
+  x: number;
+  baseline: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  held?: boolean;
+  playing?: boolean;
+}
+
+export interface HouseVisual {
+  occupied: boolean;
+  hidePet: boolean;
+  wiggle: number;
+}
+
+export function isFrogForeground(frog?: FrogVisual): boolean {
+  return frog?.held === true || frog?.playing === true;
 }
 
 export function getScenePropLayout(world: WorldSize): ScenePropLayout {
@@ -42,8 +63,9 @@ export function getScenePropLayout(world: WorldSize): ScenePropLayout {
         height: houseHeight,
       },
       frog: {
-        x: houseX,
-        baseline: houseBaseline + 4,
+        // The toy rests at the front-right edge rather than inside the doorway.
+        x: houseX + houseWidth * 0.12,
+        baseline: houseBaseline + houseHeight * 0.32,
         width: frogWidth,
         height: frogWidth * frogAspect,
       },
@@ -71,11 +93,26 @@ export function getScenePropLayout(world: WorldSize): ScenePropLayout {
       height: houseHeight,
     },
     frog: {
-      x: houseX,
-      baseline: houseBaseline + 5,
+      x: houseX + houseWidth * 0.12,
+      baseline: houseBaseline + houseHeight * 0.32,
       width: frogWidth,
       height: frogWidth * frogAspect,
     },
+  };
+}
+
+export function getDonutRestPoint(world: WorldSize): Point {
+  const bed = getScenePropLayout(world).cushion;
+  // The front sprite's paws land near the padded center, behind the front rim.
+  return { x: bed.x, y: bed.y + bed.height * 0.04 };
+}
+
+export function getHouseVisitPoint(world: WorldSize): Point {
+  const house = getScenePropLayout(world).house;
+  const compact = world.width < 560;
+  return {
+    x: house.x - house.width * (compact ? 0.75 : 0.68),
+    y: house.baseline + house.height * (compact ? 0.45 : 0.2),
   };
 }
 
@@ -83,23 +120,45 @@ export function drawSceneProps(
   context: CanvasRenderingContext2D,
   world: WorldSize,
   images: ScenePropImages,
+  frogVisual?: FrogVisual,
+  showFrog = true,
+  houseVisual?: HouseVisual,
 ): void {
   const layout = getScenePropLayout(world);
-  if (images.petHouse) {
-    drawScenePropSprite(context, layout.house, images.petHouse, PET_HOUSE);
-  } else {
-    drawPetHouseFallback(context, layout.house);
-  }
+  context.save();
+  context.translate(layout.house.x, layout.house.baseline);
+  context.rotate(houseVisual?.wiggle ?? 0);
+  const localHouse = { x: 0, baseline: 0, width: layout.house.width, height: layout.house.height };
+  if (houseVisual?.occupied && images.petHouseOccupied) {
+    drawScenePropSprite(context, localHouse, images.petHouseOccupied, PET_HOUSE_OCCUPIED);
+  } else if (images.petHouse) {
+    drawScenePropSprite(context, localHouse, images.petHouse, PET_HOUSE);
+  } else drawPetHouseFallback(context, localHouse);
+  context.restore();
   if (images.donutPetBed) {
     drawScenePropSprite(context, layout.cushion, images.donutPetBed, DONUT_PET_BED);
   } else {
     drawDonutCushionFallback(context, layout.cushion);
   }
-  if (images.frogToy) {
-    drawScenePropSprite(context, layout.frog, images.frogToy, FROG_TOY);
-  } else {
-    drawFrogToyFallback(context, layout.frog);
-  }
+  if (showFrog) drawFrogProp(context, world, images, frogVisual);
+}
+
+export function drawFrogProp(
+  context: CanvasRenderingContext2D,
+  world: WorldSize,
+  images: ScenePropImages,
+  frogVisual?: FrogVisual,
+): void {
+  const layout = getScenePropLayout(world);
+  const frog: FrogVisual = frogVisual ?? layout.frog;
+  context.save();
+  context.translate(frog.x, frog.baseline);
+  context.rotate(frog.rotation ?? 0);
+  context.scale(frog.scaleX ?? 1, frog.scaleY ?? 1);
+  const localFrog = { x: 0, baseline: 0, width: layout.frog.width, height: layout.frog.height };
+  if (images.frogToy) drawScenePropSprite(context, localFrog, images.frogToy, FROG_TOY);
+  else drawFrogToyFallback(context, localFrog);
+  context.restore();
 }
 
 function drawScenePropSprite(

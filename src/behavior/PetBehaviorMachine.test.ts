@@ -76,6 +76,43 @@ describe('PetBehaviorMachine', () => {
     expect(pet.velocityX).toBeLessThan(0);
   });
 
+  it.each([
+    { edge: 'left', startX: 58, facing: -1 as const, inward: 1 as const },
+    { edge: 'right', startX: 342, facing: 1 as const, inward: -1 as const },
+  ])('turns once and walks inward from the $edge edge', ({ startX, facing, inward }) => {
+    const pet = makePet();
+    pet.state = 'walk';
+    pet.position.x = startX;
+    pet.facing = facing;
+    const behavior = new PetBehaviorMachine(() => 0);
+    const directions: number[] = [];
+
+    for (let frame = 0; frame < 20; frame += 1) {
+      behavior.update(0.05, pet, world);
+      directions.push(pet.facing);
+      pet.position.x += pet.velocityX * 0.05;
+    }
+
+    expect(directions).toEqual(Array(20).fill(inward));
+    expect((pet.position.x - startX) * inward).toBeGreaterThan(40);
+  });
+
+  it.each([
+    { startX: 110, facing: -1 as const, inward: 1 as const },
+    { startX: 290, facing: 1 as const, inward: -1 as const },
+  ])('turns before an autonomous walk clips the sprite at x=$startX', ({ startX, facing, inward }) => {
+    const pet = makePet();
+    pet.state = 'walk';
+    pet.position.x = startX;
+    pet.facing = facing;
+    const behavior = new PetBehaviorMachine(() => 0);
+
+    behavior.update(0.1, pet, world);
+
+    expect(pet.facing).toBe(inward);
+    expect(pet.velocityX * inward).toBeGreaterThan(0);
+  });
+
   it('moves to a target, allows redirection, and resumes autonomy', () => {
     const pet = makePet();
     const behavior = new PetBehaviorMachine(() => 0);

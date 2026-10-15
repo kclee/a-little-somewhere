@@ -2,10 +2,15 @@
 
 A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2D. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in its room.
 
-> Work in progress — current milestone: V0.3b.1 interaction and shadow polish.
+> Work in progress — current public milestone: V0.4b rest and sleep lifecycle.
 
 ## Version history
 
+- **V0.4b — Rest & Sleep Lifecycle:** The Maltese stays in the donut or pet house, falls asleep after a quiet pause, and wakes for meaningful interactions.
+- **V0.4a — Pet House Visit:** A house-entry sequence with occupied-house artwork and a gentle wiggle.
+- **V0.3e — Frog Drag & Drop:** Move the frog around the room, into the house, or onto the donut.
+- **V0.3d — Frog Play:** Click the frog to invite the Maltese over for a brief play reaction.
+- **V0.3c — Donut Rest:** The Maltese can approach and rest in the pink cushion.
 - **V0.3b.1 — Interaction & Shadow Polish:** Sit shadow aligned with the seated paws; floor arrivals pause for Attention; wall clicks move horizontally before the rear-facing wag.
 - **V0.3b — Movement & Dash:** Floor-directed movement, occasional playful dashes, wall reaction, and pet status text.
 - **V0.3a — Room Personalities:** Switch between the Cozy Wood and Warm Tile rooms without resetting the pet.
@@ -17,20 +22,25 @@ A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2
 
 ## Work in progress
 
-The latest milestone aligns the Sit shadow beneath the seated paws and gives floor clicks a brief arrival head tilt. Wall clicks now move the Maltese horizontally before the tail wag. The Dash is best seen in the live app.
+The Maltese can settle into the donut or pet house, drift off, and wake when invited to play or explore again. The frog, rooms, and earlier interactions remain available.
 
-<img src="docs/images/v0.3b.1-sit-shadow-after.png" alt="V0.3b.1 Maltese sitting with its shadow beneath its paws" width="480">
-<img src="docs/images/v0.3b.1-interaction-floor-arrival.png" alt="V0.3b.1 Maltese pausing for an Attention head tilt after a floor click" width="480">
+<img src="docs/images/v0.4b-desktop-donut-sleeping.png" alt="Maltese resting in the pink donut in the Warm Tile Room" width="480">
+<img src="docs/images/v0.4b-desktop-house-sleeping.png" alt="Maltese peeking from the pet house while sleeping" width="480">
 
 These are work-in-progress visual checkpoints, not final artwork. When a new milestone is captured, its older views move into the section below.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
 
+#### V0.4a — pet house visit
+
+<img src="docs/images/v0.4a-house-desktop-occupied-tile.png" alt="Maltese peeking out from the blue-striped pet house" width="480">
+
 #### V0.3b.1 — shadow comparison and interaction sequence
 
 Before the Sit shadow correction:
 
+<img src="docs/images/v0.3b.1-sit-shadow-after.png" alt="V0.3b.1 Maltese sitting with its shadow beneath its paws" width="480">
 <img src="docs/images/v0.3b.1-sit-shadow-before.png" alt="Before: Sit shadow sits slightly in front of the Maltese's paws" width="480">
 
 Floor movement → arrival Attention → wall movement → rear-facing wag:
@@ -92,6 +102,8 @@ npm run check
 ```
 
 The warm cream tile room is the default. Use the house button to switch rooms without restarting the pet. Add `?room=wood` to the local URL to open directly in the wood room.
+
+The Jimmy photo button is a local-only gallery when all three private photos are present in `art-inbox`. The real photographs are Git-ignored and are not included in the public GitHub Pages build.
 
 The project intentionally uses only TypeScript, Vite, Vitest, and browser Canvas APIs. There is no backend or multiplayer service.
 

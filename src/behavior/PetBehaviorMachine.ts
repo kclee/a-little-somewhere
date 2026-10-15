@@ -8,9 +8,10 @@ const JOG_SPEED = WALK_SPEED * 5;
 const ATTENTION_SECONDS = 1.15;
 const ARRIVAL_ATTENTION_SECONDS = 1.75;
 const WALL_WAG_SECONDS = 2.5;
+export const FROG_PLAY_SECONDS = 4.8;
 const JOG_DISTANCE = 150;
 const WALL_NEAR_DISTANCE = 10;
-type ArrivalAction = 'attention' | 'wallWag';
+type ArrivalAction = 'attention' | 'wallWag' | 'donutRest' | 'frogPlay' | 'houseVisit';
 
 export class PetBehaviorMachine {
   private stateTimeRemaining = 1.3;
@@ -32,9 +33,14 @@ export class PetBehaviorMachine {
         this.movementTarget = null;
         const arrivalAction = this.arrivalAction;
         this.arrivalAction = null;
-        pet.intent = 'autonomous';
+        pet.intent = arrivalAction === 'donutRest' ? 'restAtDonut'
+          : arrivalAction === 'frogPlay' ? 'playWithFrog'
+            : arrivalAction === 'houseVisit' ? 'insideHouse' : 'autonomous';
         if (arrivalAction === 'attention') this.enterState('attention', ARRIVAL_ATTENTION_SECONDS, pet);
         else if (arrivalAction === 'wallWag') this.enterState('wallWag', WALL_WAG_SECONDS, pet);
+        else if (arrivalAction === 'donutRest') this.enterState('idle', Number.POSITIVE_INFINITY, pet);
+        else if (arrivalAction === 'frogPlay') this.enterState('idle', FROG_PLAY_SECONDS, pet);
+        else if (arrivalAction === 'houseVisit') this.enterState('idle', Number.POSITIVE_INFINITY, pet);
         else this.chooseAutonomousState(pet, world);
       } else {
         const speed = pet.state === 'jog' ? JOG_SPEED : WALK_SPEED;
@@ -45,6 +51,21 @@ export class PetBehaviorMachine {
       }
       return;
     }
+    if (pet.intent === 'insideHouse' || pet.intent === 'restAtDonut') {
+      pet.velocityX = 0;
+      pet.velocityY = 0;
+      return;
+    }
+    if (pet.intent === 'playWithFrog') {
+      this.stateTimeRemaining -= deltaSeconds;
+      pet.velocityX = 0;
+      pet.velocityY = 0;
+      if (this.stateTimeRemaining <= 0) {
+        pet.intent = 'autonomous';
+        this.chooseAutonomousState(pet, world);
+      }
+      return;
+    }
     this.stateTimeRemaining -= deltaSeconds;
 
     if (pet.state === 'walk') {
@@ -52,8 +73,14 @@ export class PetBehaviorMachine {
       pet.velocityY = 0;
       const nextX = pet.position.x + pet.velocityX * deltaSeconds;
       const bounds = getMovementBounds(world);
-      if (nextX < bounds.minX + 4 || nextX > bounds.maxX - 4) {
-        pet.facing = pet.facing === 1 ? -1 : 1;
+      // Autonomous walks turn before the sprite clips the room edge. Only
+      // reverse while moving outward; otherwise the edge band causes a flip
+      // on every frame and leaves the pet walking in place.
+      const turnInset = Math.min(50, world.width * 0.12);
+      const turnLeft = pet.facing === -1 && nextX <= bounds.minX + turnInset;
+      const turnRight = pet.facing === 1 && nextX >= bounds.maxX - turnInset;
+      if (turnLeft || turnRight) {
+        pet.facing = turnLeft ? 1 : -1;
         pet.velocityX = pet.facing * WALK_SPEED;
       }
     } else {
@@ -76,6 +103,45 @@ export class PetBehaviorMachine {
     this.startMovement(point, pet, 'moveTo', 'attention');
   }
 
+  public restAtDonut(point: Point, pet: PetModel): void {
+    if (pet.intent === 'donutMove' || pet.intent === 'restAtDonut') return;
+    this.startMovement(point, pet, 'donutMove', 'donutRest');
+  }
+
+  public playWithFrog(point: Point, pet: PetModel): void {
+    if (pet.intent === 'frogMove' || pet.intent === 'playWithFrog') return;
+    if (Math.hypot(point.x - pet.position.x, point.y - pet.position.y) <= 18) {
+      this.cancelMovement(pet);
+      pet.intent = 'playWithFrog';
+      this.enterState('idle', FROG_PLAY_SECONDS, pet);
+      return;
+    }
+    this.startMovement(point, pet, 'frogMove', 'frogPlay');
+  }
+
+  public visitHouse(point: Point, pet: PetModel): void {
+    if (pet.intent === 'houseMove' || pet.intent === 'insideHouse') return;
+    this.startMovement(point, pet, 'houseMove', 'houseVisit');
+  }
+
+  public exitRest(pet: PetModel): void {
+    if (pet.intent !== 'insideHouse' && pet.intent !== 'restAtDonut') return;
+    pet.intent = 'autonomous';
+    this.enterState('idle', 1.2, pet);
+  }
+
+  public pauseForFrogDrag(pet: PetModel): void {
+    this.cancelMovement(pet);
+    pet.intent = 'frogDrag';
+    this.enterState('idle', Number.POSITIVE_INFINITY, pet);
+  }
+
+  public resumeAfterFrogDrag(pet: PetModel): void {
+    if (pet.intent !== 'frogDrag') return;
+    pet.intent = 'autonomous';
+    this.enterState('idle', 1.2, pet);
+  }
+
   public lookAtWall(point: Point, pet: PetModel, world: WorldSize): void {
     const target = clampFloorPoint({ x: point.x, y: pet.position.y }, world);
     if (Math.abs(target.x - pet.position.x) <= WALL_NEAR_DISTANCE) {
@@ -86,7 +152,12 @@ export class PetBehaviorMachine {
     this.startMovement(target, pet, 'wallMove', 'wallWag');
   }
 
-  private startMovement(point: Point, pet: PetModel, intent: 'moveTo' | 'wallMove', arrivalAction: ArrivalAction): void {
+  private startMovement(
+    point: Point,
+    pet: PetModel,
+    intent: 'moveTo' | 'wallMove' | 'donutMove' | 'frogMove' | 'houseMove',
+    arrivalAction: ArrivalAction,
+  ): void {
     this.movementTarget = point;
     this.arrivalAction = arrivalAction;
     pet.intent = intent;

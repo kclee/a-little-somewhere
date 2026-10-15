@@ -89,6 +89,17 @@ h1 {
   font-family: system-ui, sans-serif;
 }
 
+.header-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.photo-control-button[hidden] {
+  display: none;
+}
+
 .pet-status {
   position: absolute;
   z-index: 1;
@@ -141,6 +152,78 @@ h1 {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.6;
+}
+
+.photo-control-button svg {
+  fill: none;
+}
+
+.jimmy-photo-dialog {
+  width: min(296px, calc(100vw - 24px));
+  max-width: none;
+  max-height: min(840px, calc(100dvh - 24px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(115 81 70 / 22%);
+  border-radius: 24px;
+  background: #fff7ec;
+  box-shadow: 0 24px 70px rgb(49 32 27 / 32%);
+}
+
+.jimmy-photo-dialog::backdrop {
+  background: rgb(53 37 35 / 55%);
+  backdrop-filter: blur(3px);
+}
+
+.jimmy-photo-close {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgb(115 81 70 / 20%);
+  border-radius: 13px;
+  color: #765a52;
+  background: rgb(255 249 240 / 94%);
+  cursor: pointer;
+}
+
+.jimmy-photo-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.jimmy-photo-close:focus-visible {
+  outline: 3px solid rgb(138 101 87 / 42%);
+  outline-offset: 2px;
+}
+
+.jimmy-photo-scroll {
+  display: grid;
+  max-height: min(840px, calc(100dvh - 24px));
+  justify-items: center;
+  gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 54px 16px 16px;
+  scrollbar-color: #d8bbab transparent;
+}
+
+.jimmy-photo-scroll img {
+  display: block;
+  width: min(100%, 248px);
+  aspect-ratio: 1;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #eadfd4;
 }
 
 .scene-picker {
@@ -221,7 +304,7 @@ canvas {
   width: 100%;
   height: 100%;
   cursor: pointer;
-  touch-action: none;
+  touch-action: auto;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -239,6 +322,27 @@ canvas:focus-visible {
 
   .room-frame {
     border-radius: 22px;
+  }
+
+  .header-controls {
+    gap: 6px;
+  }
+
+  .header-controls .room-control-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .jimmy-photo-scroll {
+    padding: 50px 12px 12px;
+  }
+
+  .jimmy-photo-dialog {
+    width: min(258px, calc(100vw - 24px));
+  }
+
+  .jimmy-photo-scroll img {
+    width: min(100%, 214px);
   }
 }
 

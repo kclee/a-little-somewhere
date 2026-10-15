@@ -1,4 +1,4 @@
-import type { PetModel, WorldSize } from '../core/types';
+import type { PetModel, Point, WorldSize } from '../core/types';
 import { FLOOR_START_RATIO } from '../core/RoomGeometry';
 import { DEFAULT_WALK_FPS, WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
@@ -14,10 +14,11 @@ import {
   shouldMirrorWalkCycle,
 } from './MalteseWalkCycle';
 import { getPetShadowLayout } from './PetShadow';
+import { drawExpressionEffect, type ExpressionFrame } from './ExpressionEffects';
 import { RearTailWagSpriteSet, REAR_TAIL_WAG_CYCLE_SECONDS, REAR_TAIL_WAG_START_SECONDS } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
-import { ScenePropAssets } from './ScenePropAssets';
-import { drawSceneProps } from './SceneProps';
+import { ScenePropAssets, type ScenePropImages } from './ScenePropAssets';
+import { drawFrogProp, drawSceneProps, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
@@ -51,12 +52,28 @@ export class CanvasRenderer {
     return { width: this.width, height: this.height };
   }
 
-  public render(pet: PetModel, elapsed: number): void {
-    this.drawRoom(elapsed);
-    this.drawPet(pet, elapsed);
+  public render(
+    pet: PetModel, elapsed: number, expression?: ExpressionFrame | null,
+    frog?: FrogVisual, house?: HouseVisual, expressionAnchor?: Point,
+  ): void {
+    const propImages = this.scenePropAssets.getImages();
+    this.drawRoom(elapsed, propImages, frog, house);
+    if (!house?.hidePet || (house.occupied && !propImages.petHouseOccupied)) this.drawPet(pet, elapsed);
+    if (isFrogForeground(frog)) {
+      drawFrogProp(this.context, { width: this.width, height: this.height }, propImages, frog);
+    }
+    if (expression) {
+      const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
+      drawExpressionEffect(
+        this.context,
+        expressionAnchor ? { ...pet, position: expressionAnchor, facing: 1 } : pet,
+        spriteSize,
+        expression,
+      );
+    }
   }
 
-  private drawRoom(elapsed: number): void {
+  private drawRoom(elapsed: number, propImages: ScenePropImages, frog?: FrogVisual, house?: HouseVisual): void {
     const ctx = this.context;
     const w = this.width;
     const h = this.height;
@@ -72,7 +89,7 @@ export class CanvasRenderer {
 
     this.drawWindow(w * 0.08, h * 0.1, Math.min(w * 0.38, 210), Math.min(h * 0.28, 170), elapsed);
     this.drawWallDecor(w, h);
-    drawSceneProps(ctx, { width: w, height: h }, this.scenePropAssets.getImages());
+    drawSceneProps(ctx, { width: w, height: h }, propImages, frog, !isFrogForeground(frog), house);
 
     ctx.fillStyle = this.scene.baseboardColor;
     ctx.fillRect(0, floorY - 8, w, 10);
@@ -501,12 +518,16 @@ export class CanvasRenderer {
     const sitting = pet.state === 'sit' || pet.state === 'wallWag';
     const attentive = pet.state === 'attention';
     const stepPhase = Math.sin(pet.stateElapsed * 9);
-    const bob = walking ? Math.abs(stepPhase) * -2.4 : Math.sin(elapsed * 2.1) * 0.65;
+    const playing = pet.intent === 'playWithFrog';
+    const playPhase = pet.stateElapsed * Math.PI * 2 * 1.55;
+    const bob = playing ? -Math.abs(Math.sin(playPhase)) * 2.2
+      : walking ? Math.abs(stepPhase) * -2.4 : Math.sin(elapsed * 2.1) * 0.65;
     const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
     const sourceScale = spriteSize / definition.canvasSize;
     const mirrorX = shouldMirrorMaltesePose(pose, pet.facing) ? -1 : 1;
     const scaleY = sitting ? 0.9 : walking ? 1 - Math.abs(stepPhase) * 0.012 : 1;
-    const rotation = walking ? stepPhase * 0.012 : attentive ? Math.sin(elapsed * 1.7) * 0.006 : 0;
+    const rotation = playing ? Math.sin(playPhase) * 0.016
+      : walking ? stepPhase * 0.012 : attentive ? Math.sin(elapsed * 1.7) * 0.006 : 0;
 
     this.drawPetShadow(pet, spriteSize, pose);
 

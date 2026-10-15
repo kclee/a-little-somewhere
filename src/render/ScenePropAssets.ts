@@ -25,6 +25,12 @@ export const PET_HOUSE: ScenePropSpriteDefinition = {
   crop: { x: 60, y: 90, width: 1151, height: 1065 },
 };
 
+export const PET_HOUSE_OCCUPIED: ScenePropSpriteDefinition = {
+  file: 'pet-house-occupied.png',
+  canvasSize: [1254, 1254],
+  crop: { x: 19, y: 68, width: 1222, height: 1113 },
+};
+
 export const FROG_TOY: ScenePropSpriteDefinition = {
   file: 'frog-toy.png',
   canvasSize: [1254, 1254],
@@ -34,17 +40,20 @@ export const FROG_TOY: ScenePropSpriteDefinition = {
 export interface ScenePropImages {
   donutPetBed: HTMLImageElement | null;
   petHouse: HTMLImageElement | null;
+  petHouseOccupied: HTMLImageElement | null;
   frogToy: HTMLImageElement | null;
 }
 
 export class ScenePropAssets {
   private readonly donutPetBed: HTMLImageElement;
   private readonly petHouse: HTMLImageElement;
+  private readonly petHouseOccupied: HTMLImageElement;
   private readonly frogToy: HTMLImageElement;
 
   public constructor(baseUrl = document.baseURI) {
     this.donutPetBed = this.load(DONUT_PET_BED, baseUrl);
     this.petHouse = this.load(PET_HOUSE, baseUrl);
+    this.petHouseOccupied = this.load(PET_HOUSE_OCCUPIED, baseUrl);
     this.frogToy = this.load(FROG_TOY, baseUrl);
   }
 
@@ -52,6 +61,7 @@ export class ScenePropAssets {
     return {
       donutPetBed: this.ready(this.donutPetBed),
       petHouse: this.ready(this.petHouse),
+      petHouseOccupied: this.ready(this.petHouseOccupied),
       frogToy: this.ready(this.frogToy),
     };
   }

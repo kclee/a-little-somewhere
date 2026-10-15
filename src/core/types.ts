@@ -14,7 +14,7 @@ export interface PetModel {
   position: Point;
   velocityX: number;
   velocityY: number;
-  intent: 'autonomous' | 'moveTo' | 'wallMove';
+  intent: 'autonomous' | 'moveTo' | 'wallMove' | 'donutMove' | 'restAtDonut' | 'frogMove' | 'playWithFrog' | 'frogDrag' | 'houseMove' | 'insideHouse';
   facing: -1 | 1;
   state: PetState;
   stateElapsed: number;
