@@ -1,10 +1,35 @@
 # A Little Somewhere
 
-A small, passive virtual-pet experience. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in a cozy Canvas 2D room.
+A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2D. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in its room.
 
-V0.2 integrates five provisional static character poses. They are deliberately mapped as poses—not treated as a finished animation sheet—and the original Canvas placeholder remains the load/error fallback.
+> Work in progress — current milestone: V0.2a illustrated donut bed integration.
 
-## Local development
+## Work in progress
+
+### Current desktop landscape
+
+![A Little Somewhere with the illustrated donut bed at desktop landscape size](docs/images/v0.2a-donut-art-desktop.png)
+
+### Current mobile portrait
+
+<img src="docs/images/v0.2a-donut-art-mobile.png" alt="A Little Somewhere with the illustrated donut bed at mobile portrait size" width="390">
+
+These are visual checkpoints, not final artwork. New desktop and mobile captures will be added as the room and character evolve.
+
+<details>
+<summary>Earlier visual checkpoints</summary>
+
+#### V0.2 — provisional Maltese poses
+
+![A Little Somewhere V0.2 with the provisional Maltese character art](docs/images/v0.2-maltese-pose-integration.png)
+
+#### V0.2a — first scene prop pass
+
+![A Little Somewhere V0.2a with the original drawn cushion, striped pet house, and frog toy](docs/images/v0.2a-scene-props.png)
+
+</details>
+
+## Run locally
 
 Requirements: Node.js 22 or later and npm.
 
@@ -13,13 +38,13 @@ npm install
 npm run dev
 ```
 
-Checks used by V0.2:
+Then open the local address shown by Vite. To run all checks:
 
 ```powershell
 npm run check
 ```
 
-The project intentionally uses only TypeScript, Vite, Vitest, and browser Canvas APIs. There is no backend, framework, or personal reference artwork.
+The project intentionally uses only TypeScript, Vite, Vitest, and browser Canvas APIs. There is no backend or multiplayer service.
 
 ## GitHub Pages deployment
 
@@ -31,14 +56,5 @@ After creating a GitHub repository and pushing this project:
 2. Under **Build and deployment**, set **Source** to **GitHub Actions**.
 3. Push to `main`, or run **Deploy to GitHub Pages** manually from the Actions tab.
 
-Vite uses relative asset paths, so the build works both at a user/organization Pages root and under a repository subpath.
-
-## Structure
-
-- `src/behavior`: finite state machine for autonomous and attention behavior
-- `src/simulation`: pet/world state and time-step updates
-- `src/render`: responsive Canvas 2D drawing
-- `public/assets/pets/maltese`: provisional transparent Maltese poses
-- `src/input`: unified pointer handling for mouse, touch, and pen
-- `src/core`: shared model types
+The live project is available at [kclee.github.io/a-little-somewhere](https://kclee.github.io/a-little-somewhere/).
 

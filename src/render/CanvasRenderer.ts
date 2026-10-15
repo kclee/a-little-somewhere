@@ -5,10 +5,13 @@ import {
   selectMaltesePose,
   shouldMirrorMaltesePose,
 } from './MalteseSpriteSet';
+import { ScenePropAssets } from './ScenePropAssets';
+import { drawSceneProps } from './SceneProps';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
   private readonly malteseSprites = new MalteseSpriteSet();
+  private readonly scenePropAssets = new ScenePropAssets();
   private width = 1;
   private height = 1;
 
@@ -63,7 +66,7 @@ export class CanvasRenderer {
 
     this.drawWindow(w * 0.08, h * 0.1, Math.min(w * 0.38, 210), Math.min(h * 0.28, 170), elapsed);
     this.drawShelf(w, h);
-    this.drawRug(w, h);
+    drawSceneProps(ctx, { width: w, height: h }, this.scenePropAssets.getDonutPetBed());
 
     ctx.fillStyle = '#b9856c';
     ctx.fillRect(0, floorY - 8, w, 10);
@@ -139,21 +142,6 @@ export class CanvasRenderer {
     ctx.moveTo(x + shelfWidth * 0.82, y - 23);
     ctx.quadraticCurveTo(x + shelfWidth * 0.92, y - 51, x + shelfWidth * 0.89, y - 63);
     ctx.stroke();
-  }
-
-  private drawRug(w: number, h: number): void {
-    const ctx = this.context;
-    ctx.save();
-    ctx.translate(w * 0.52, h * 0.82);
-    ctx.scale(1, 0.34);
-    ctx.fillStyle = 'rgb(244 210 190 / 80%)';
-    ctx.beginPath();
-    ctx.arc(0, 0, Math.min(w * 0.34, 220), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgb(150 95 78 / 26%)';
-    ctx.lineWidth = 10;
-    ctx.stroke();
-    ctx.restore();
   }
 
   private drawPet(pet: PetModel, elapsed: number): void {
