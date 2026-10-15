@@ -12,6 +12,7 @@ import {
   shouldMirrorWalkCycle,
 } from './MalteseWalkCycle';
 import { getPetShadowLayout } from './PetShadow';
+import { RearTailWagSpriteSet } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
 import { ScenePropAssets } from './ScenePropAssets';
 import { drawSceneProps } from './SceneProps';
@@ -20,6 +21,7 @@ export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
   private readonly malteseSprites = new MalteseSpriteSet();
   private readonly malteseWalkCycle = new MalteseWalkCycle();
+  private readonly rearTailWagSprites = new RearTailWagSpriteSet();
   private readonly scenePropAssets = new ScenePropAssets();
   private width = 1;
   private height = 1;
@@ -247,11 +249,13 @@ export class CanvasRenderer {
 
   private drawSpritePet(pet: PetModel, elapsed: number): boolean {
     const pose = selectMaltesePose(pet);
-    const image = this.malteseSprites.get(pose);
+    const rearTailWagFrame =
+      pet.state === 'sit' ? this.rearTailWagSprites.getFrame(pet.stateElapsed) : null;
+    const image = rearTailWagFrame?.image ?? this.malteseSprites.get(pose);
     if (!image) return false;
 
     const ctx = this.context;
-    const definition = MALTESE_SPRITES[pose];
+    const definition = rearTailWagFrame?.definition ?? MALTESE_SPRITES[pose];
     const walking = pet.state === 'walk';
     const sitting = pet.state === 'sit';
     const attentive = pet.state === 'attention';
