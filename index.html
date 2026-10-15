@@ -17,6 +17,35 @@
         <p class="hint">Tap somewhere in the room</p>
       </header>
       <section class="room-frame" aria-label="Virtual pet room">
+        <div class="room-controls" data-scene-controls>
+          <button
+            class="room-control-button"
+            type="button"
+            aria-label="Choose room"
+            aria-controls="scene-picker"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            data-scene-toggle
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M3.5 11.2 12 4l8.5 7.2v8.3a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z" />
+              <path d="M9.2 20.5v-6.2h5.6v6.2" />
+            </svg>
+          </button>
+          <div class="scene-picker" id="scene-picker" role="menu" data-scene-menu hidden>
+            <p class="scene-picker-title">Choose a little room</p>
+            <button type="button" role="menuitemradio" data-scene-id="wood">
+              <span class="scene-swatch scene-swatch-wood" aria-hidden="true"></span>
+              <span>Cozy Wood Room</span>
+              <span class="scene-check" aria-hidden="true">✓</span>
+            </button>
+            <button type="button" role="menuitemradio" data-scene-id="creamTile">
+              <span class="scene-swatch scene-swatch-tile" aria-hidden="true"></span>
+              <span>Warm Tile Room</span>
+              <span class="scene-check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </div>
         <canvas
           id="room"
           role="img"

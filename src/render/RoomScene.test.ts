@@ -11,6 +11,17 @@ describe('room scene configuration', () => {
     expect(resolveRoomScene('?room=wood')).toBe(ROOM_SCENES.wood);
   });
 
+  it('gives each room its own window and wall decoration personality', () => {
+    expect(ROOM_SCENES.wood).toMatchObject({
+      windowView: 'hills',
+      wallDecor: 'booksAndPlant',
+    });
+    expect(ROOM_SCENES.creamTile).toMatchObject({
+      windowView: 'taiwanCity',
+      wallDecor: 'taiwanHome',
+    });
+  });
+
   it('falls back to the review default for unknown scene values', () => {
     expect(resolveRoomScene('?room=unknown').id).toBe('creamTile');
   });

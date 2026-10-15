@@ -28,11 +28,15 @@ export class CanvasRenderer {
 
   public constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly scene: RoomSceneConfig = ROOM_SCENES.creamTile,
+    private scene: RoomSceneConfig = ROOM_SCENES.creamTile,
   ) {
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas 2D is not supported in this browser.');
     this.context = context;
+  }
+
+  public setScene(scene: RoomSceneConfig): void {
+    this.scene = scene;
   }
 
   public resize(width: number, height: number): WorldSize {
@@ -65,7 +69,7 @@ export class CanvasRenderer {
     this.drawFloor(floorY);
 
     this.drawWindow(w * 0.08, h * 0.1, Math.min(w * 0.38, 210), Math.min(h * 0.28, 170), elapsed);
-    this.drawShelf(w, h);
+    this.drawWallDecor(w, h);
     drawSceneProps(ctx, { width: w, height: h }, this.scenePropAssets.getImages());
 
     ctx.fillStyle = this.scene.baseboardColor;
@@ -153,6 +157,35 @@ export class CanvasRenderer {
     ctx.fillStyle = sky;
     ctx.fillRect(x, y, width, height);
 
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+    if (this.scene.windowView === 'hills') {
+      this.drawHillWindowView(x, y, width, height, elapsed);
+    } else {
+      this.drawTaiwanCityWindowView(x, y, width, height);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = '#fff7e9';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(x + width / 2, y);
+    ctx.lineTo(x + width / 2, y + height);
+    ctx.moveTo(x, y + height / 2);
+    ctx.lineTo(x + width, y + height / 2);
+    ctx.stroke();
+  }
+
+  private drawHillWindowView(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    elapsed: number,
+  ): void {
+    const ctx = this.context;
     ctx.fillStyle = 'rgb(255 250 215 / 85%)';
     ctx.beginPath();
     ctx.arc(x + width * 0.74, y + height * 0.25, 12 + Math.sin(elapsed * 0.4), 0, Math.PI * 2);
@@ -167,18 +200,51 @@ export class CanvasRenderer {
     ctx.lineTo(x, y + height);
     ctx.closePath();
     ctx.fill();
-
-    ctx.strokeStyle = '#fff7e9';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(x + width / 2, y);
-    ctx.lineTo(x + width / 2, y + height);
-    ctx.moveTo(x, y + height / 2);
-    ctx.lineTo(x + width, y + height / 2);
-    ctx.stroke();
   }
 
-  private drawShelf(w: number, h: number): void {
+  private drawTaiwanCityWindowView(x: number, y: number, width: number, height: number): void {
+    const ctx = this.context;
+    const groundY = y + height * 0.9;
+    const buildings = [
+      { x: 0.02, width: 0.27, height: 0.43, color: '#c9b5a6' },
+      { x: 0.25, width: 0.31, height: 0.61, color: '#a9b7b5' },
+      { x: 0.53, width: 0.26, height: 0.49, color: '#d1bea9' },
+      { x: 0.76, width: 0.25, height: 0.57, color: '#b9aaa5' },
+    ] as const;
+
+    for (const building of buildings) {
+      const buildingX = x + width * building.x;
+      const buildingWidth = width * building.width;
+      const buildingHeight = height * building.height;
+      const buildingY = groundY - buildingHeight;
+      ctx.fillStyle = building.color;
+      ctx.fillRect(buildingX, buildingY, buildingWidth, buildingHeight);
+      ctx.fillStyle = 'rgb(255 240 202 / 64%)';
+      const columns = building.width > 0.28 ? 3 : 2;
+      for (let column = 0; column < columns; column += 1) {
+        for (let row = 0; row < 3; row += 1) {
+          ctx.fillRect(
+            buildingX + buildingWidth * (0.17 + column * (0.66 / Math.max(1, columns - 1))),
+            buildingY + buildingHeight * (0.2 + row * 0.23),
+            Math.max(3, buildingWidth * 0.1),
+            Math.max(4, buildingHeight * 0.1),
+          );
+        }
+      }
+    }
+
+    ctx.fillStyle = '#8e9a93';
+    ctx.fillRect(x + width * 0.34, groundY - height * 0.67, width * 0.13, height * 0.025);
+    ctx.fillRect(x + width * 0.38, groundY - height * 0.72, width * 0.05, height * 0.05);
+
+    ctx.fillStyle = '#819b81';
+    ctx.beginPath();
+    ctx.arc(x + width * 0.12, groundY, height * 0.12, Math.PI, Math.PI * 2);
+    ctx.arc(x + width * 0.88, groundY, height * 0.1, Math.PI, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private drawWallDecor(w: number, h: number): void {
     const ctx = this.context;
     const shelfWidth = Math.min(180, w * 0.34);
     const x = w - shelfWidth - w * 0.07;
@@ -187,25 +253,187 @@ export class CanvasRenderer {
     ctx.fillStyle = '#9b6854';
     this.roundRect(x, y, shelfWidth, 9, 4);
     ctx.fill();
-
-    ctx.fillStyle = '#c98e78';
-    ctx.fillRect(x + shelfWidth * 0.12, y - 35, 16, 35);
-    ctx.fillStyle = '#789497';
-    ctx.fillRect(x + shelfWidth * 0.25, y - 46, 18, 46);
-    ctx.fillStyle = '#d8ab71';
-    ctx.fillRect(x + shelfWidth * 0.4, y - 29, 15, 29);
-
-    ctx.fillStyle = '#ab7961';
-    this.roundRect(x + shelfWidth * 0.73, y - 23, 31, 24, 5);
+    ctx.fillStyle = 'rgb(255 228 204 / 25%)';
+    this.roundRect(x + 3, y, shelfWidth - 6, 2, 1);
     ctx.fill();
-    ctx.strokeStyle = '#60836c';
-    ctx.lineWidth = 4;
+
+    if (this.scene.wallDecor === 'taiwanHome') {
+      this.drawTaiwanHomeDecor(x, y, shelfWidth);
+      return;
+    }
+
+    this.drawShelfBook(x + shelfWidth * 0.12, y, 16, 36, '#c98e78');
+    this.drawShelfBook(x + shelfWidth * 0.24, y, 15, 29, '#d8ab71');
+    this.drawShelfBook(x + shelfWidth * 0.38, y, 19, 46, '#789497', 'Jimmy');
+    this.drawShelfPlant(x + shelfWidth * 0.73, y, 31, '#ab7961', 'soft');
+  }
+
+  private drawTaiwanHomeDecor(x: number, y: number, shelfWidth: number): void {
+    const ctx = this.context;
+    const boxX = x + shelfWidth * 0.08;
+    const boxWidth = shelfWidth * 0.32;
+    const boxTop = y - 31;
+
+    const boxFill = ctx.createLinearGradient(boxX, boxTop, boxX + boxWidth, y);
+    boxFill.addColorStop(0, '#cda18a');
+    boxFill.addColorStop(1, '#ad7f69');
+    ctx.fillStyle = boxFill;
+    this.roundRect(boxX, boxTop, boxWidth, 31, 5);
+    ctx.fill();
+    ctx.strokeStyle = 'rgb(117 74 59 / 45%)';
+    ctx.lineWidth = 1.25;
     ctx.beginPath();
-    ctx.moveTo(x + shelfWidth * 0.82, y - 23);
-    ctx.quadraticCurveTo(x + shelfWidth * 0.68, y - 49, x + shelfWidth * 0.72, y - 61);
-    ctx.moveTo(x + shelfWidth * 0.82, y - 23);
-    ctx.quadraticCurveTo(x + shelfWidth * 0.92, y - 51, x + shelfWidth * 0.89, y - 63);
+    ctx.moveTo(boxX + 2, boxTop + 7);
+    ctx.lineTo(boxX + boxWidth - 2, boxTop + 7);
     ctx.stroke();
+    ctx.fillStyle = '#e9c5ac';
+    this.roundRect(boxX + 2, boxTop + 1, boxWidth - 4, 5, 2);
+    ctx.fill();
+    ctx.fillStyle = '#f4dfcb';
+    this.roundRect(boxX + boxWidth * 0.35, y - 17, boxWidth * 0.3, 5, 2.5);
+    ctx.fill();
+    ctx.fillStyle = 'rgb(133 87 69 / 40%)';
+    this.roundRect(boxX + boxWidth * 0.4, y - 15.5, boxWidth * 0.2, 2, 1);
+    ctx.fill();
+
+    this.drawShelfBook(x + shelfWidth * 0.48, y, 19, 42, '#718d91', '吉米');
+    this.drawShelfPlant(x + shelfWidth * 0.76, y, 32, '#b47d68', 'bamboo');
+  }
+
+  private drawShelfBook(
+    x: number,
+    shelfY: number,
+    width: number,
+    height: number,
+    color: string,
+    title?: 'Jimmy' | '吉米',
+  ): void {
+    const ctx = this.context;
+    const top = shelfY - height;
+    ctx.fillStyle = color;
+    this.roundRect(x, top, width, height, 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgb(255 246 224 / 80%)';
+    this.roundRect(x + 2, top + 2, width - 4, 2.5, 1);
+    ctx.fill();
+    ctx.strokeStyle = 'rgb(73 65 59 / 24%)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + width - 3, top + 6);
+    ctx.lineTo(x + width - 3, shelfY - 3);
+    ctx.stroke();
+    ctx.fillStyle = 'rgb(255 255 244 / 33%)';
+    this.roundRect(x + 3, top + 8, 2, height - 13, 1);
+    ctx.fill();
+
+    if (title === 'Jimmy') {
+      ctx.save();
+      ctx.translate(x + width * 0.5, top + height * 0.55);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = '#fff7e8';
+      ctx.font = '600 8px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(title, 0, 0);
+      ctx.restore();
+    } else if (title === '吉米') {
+      ctx.fillStyle = '#fff7e8';
+      ctx.font = '600 10px "Microsoft JhengHei", "Noto Sans CJK TC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('吉', x + width * 0.5, top + 17);
+      ctx.fillText('米', x + width * 0.5, top + 28);
+    }
+  }
+
+  private drawShelfPlant(
+    x: number,
+    shelfY: number,
+    width: number,
+    potColor: string,
+    foliage: 'soft' | 'bamboo',
+  ): void {
+    const ctx = this.context;
+    const centerX = x + width * 0.5;
+    const potTop = shelfY - 22;
+
+    if (foliage === 'bamboo') {
+      this.drawBambooFoliage(centerX, potTop);
+    } else {
+      ctx.strokeStyle = '#67866e';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(centerX, potTop);
+      ctx.quadraticCurveTo(centerX - 4, potTop - 16, centerX - 8, potTop - 30);
+      ctx.moveTo(centerX, potTop);
+      ctx.quadraticCurveTo(centerX + 5, potTop - 19, centerX + 9, potTop - 33);
+      ctx.moveTo(centerX, potTop - 5);
+      ctx.quadraticCurveTo(centerX - 1, potTop - 20, centerX + 1, potTop - 37);
+      ctx.stroke();
+
+      for (const leaf of [
+        { x: centerX - 10, y: potTop - 37, rotation: -0.55, color: '#789979' },
+        { x: centerX + 11, y: potTop - 39, rotation: 0.52, color: '#729373' },
+        { x: centerX + 1, y: potTop - 43, rotation: 0.12, color: '#87a584' },
+      ]) {
+        ctx.fillStyle = leaf.color;
+        ctx.beginPath();
+        ctx.ellipse(leaf.x, leaf.y, 4.5, 8.5, leaf.rotation, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const potFill = ctx.createLinearGradient(x, potTop, x + width, shelfY);
+    potFill.addColorStop(0, potColor);
+    potFill.addColorStop(1, '#926a5d');
+    ctx.fillStyle = potFill;
+    this.roundRect(x + 2, potTop + 3, width - 4, 19, 5);
+    ctx.fill();
+    ctx.fillStyle = '#c9967d';
+    this.roundRect(x, potTop, width, 6, 3);
+    ctx.fill();
+    ctx.fillStyle = 'rgb(255 232 207 / 35%)';
+    this.roundRect(x + 3, potTop + 1, width - 6, 1.5, 1);
+    ctx.fill();
+  }
+
+  private drawBambooFoliage(centerX: number, potTop: number): void {
+    const ctx = this.context;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#6f9876';
+    ctx.lineWidth = 2.2;
+
+    for (const stalk of [
+      { x: centerX - 7, tipX: centerX - 9, height: 39 },
+      { x: centerX, tipX: centerX + 1, height: 47 },
+      { x: centerX + 7, tipX: centerX + 9, height: 36 },
+    ]) {
+      ctx.beginPath();
+      ctx.moveTo(stalk.x, potTop + 2);
+      ctx.quadraticCurveTo(stalk.x, potTop - stalk.height * 0.5, stalk.tipX, potTop - stalk.height);
+      ctx.stroke();
+      for (const joint of [0.37, 0.68]) {
+        const jointY = potTop - stalk.height * joint;
+        const jointX = stalk.x + (stalk.tipX - stalk.x) * joint;
+        ctx.beginPath();
+        ctx.moveTo(jointX - 2.5, jointY);
+        ctx.lineTo(jointX + 2.5, jointY);
+        ctx.stroke();
+      }
+    }
+
+    for (const leaf of [
+      { x: centerX - 13, y: potTop - 40, rotation: -0.8 },
+      { x: centerX - 4, y: potTop - 48, rotation: -0.45 },
+      { x: centerX + 7, y: potTop - 51, rotation: 0.55 },
+      { x: centerX + 14, y: potTop - 37, rotation: 0.85 },
+    ]) {
+      ctx.fillStyle = '#82a886';
+      ctx.beginPath();
+      ctx.ellipse(leaf.x, leaf.y, 3.2, 7.5, leaf.rotation, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   private drawPet(pet: PetModel, elapsed: number): void {

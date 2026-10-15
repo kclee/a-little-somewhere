@@ -1,14 +1,23 @@
 import './style.css';
 import { PointerInput } from './input/PointerInput';
 import { CanvasRenderer } from './render/CanvasRenderer';
-import { resolveRoomScene } from './render/RoomScene';
+import { resolveRoomScene, ROOM_SCENES } from './render/RoomScene';
 import { PetSimulation } from './simulation/PetSimulation';
+import { ScenePicker } from './ui/ScenePicker';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#room');
-if (!canvas) throw new Error('Room canvas was not found.');
+const sceneControls = document.querySelector<HTMLElement>('[data-scene-controls]');
+if (!canvas || !sceneControls) throw new Error('Room UI was not found.');
 
-const renderer = new CanvasRenderer(canvas, resolveRoomScene(window.location.search));
+const initialScene = resolveRoomScene(window.location.search);
+const renderer = new CanvasRenderer(canvas, initialScene);
 const simulation = new PetSimulation();
+const scenePicker = new ScenePicker(sceneControls, initialScene.id, (sceneId) => {
+  renderer.setScene(ROOM_SCENES[sceneId]);
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', sceneId);
+  window.history.replaceState(null, '', url);
+});
 
 const resize = (): void => {
   const bounds = canvas.getBoundingClientRect();
@@ -35,6 +44,7 @@ requestAnimationFrame(frame);
 
 window.addEventListener('pagehide', () => {
   input.destroy();
+  scenePicker.destroy();
   resizeObserver.disconnect();
 });
 
