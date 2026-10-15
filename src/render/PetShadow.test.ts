@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { getPetShadowLayout } from './PetShadow';
 
 describe('pet shadow layout', () => {
-  it('keeps every state on the shared world-space ground line', () => {
-    for (const state of ['idle', 'walk', 'sit', 'attention'] as const) {
+  it('keeps standing states on the shared world-space ground line', () => {
+    for (const state of ['idle', 'walk', 'jog', 'attention'] as const) {
       expect(getPetShadowLayout(state, 210).offsetY).toBe(2);
     }
   });
 
   it('moves the sit shadow beneath its measured contact area', () => {
     expect(getPetShadowLayout('sit', 210).offsetX).toBeCloseTo((138 / 1254) * 210);
+    expect(getPetShadowLayout('sit', 210).offsetY).toBeCloseTo((-30 / 1254) * 210);
+    expect(getPetShadowLayout('wallWag', 210)).toEqual(getPetShadowLayout('sit', 210));
   });
 
   it('gives Sit a flatter, wider footprint than its previous compact shadow', () => {

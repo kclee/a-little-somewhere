@@ -32,16 +32,50 @@ describe('PetSimulation', () => {
     expect(simulation.pet.intent).toBe('autonomous');
   });
 
-  it('does not move the dog for wall or pet attention actions', () => {
+  it('skips movement for a nearby wall click and still holds pet attention', () => {
     const simulation = new PetSimulation();
     simulation.resize(390, 767);
     const original = { ...simulation.pet.position };
-    simulation.lookAtWall();
+    simulation.lookAtWall({ x: original.x + 5, y: 20 });
     simulation.update(0.5);
     expect(simulation.pet.position).toEqual(original);
     simulation.interact({ x: 10, y: 10 });
     simulation.update(0.5);
     expect(simulation.pet.position).toEqual(original);
+  });
+
+  it('maps a wall click to a clamped floor X while preserving the current Y', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
+    simulation.resize(390, 767);
+    const startY = simulation.pet.position.y;
+    simulation.lookAtWall({ x: 1000, y: 5 });
+    expect(simulation.pet.intent).toBe('wallMove');
+    for (let frame = 0; frame < 120 && simulation.pet.intent === 'wallMove'; frame += 1) {
+      simulation.update(0.1);
+      expect(simulation.pet.position.y).toBeCloseTo(startY);
+    }
+    expect(simulation.pet.position.x).toBeCloseTo(332);
+    expect(simulation.pet.state).toBe('wallWag');
+    for (let frame = 0; frame < 24; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('wallWag');
+    for (let frame = 0; frame < 2; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('idle');
+  });
+
+  it('lets a new click interrupt a wall move or arrival wag immediately', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
+    simulation.resize(390, 767);
+    simulation.lookAtWall({ x: 332, y: 0 });
+    simulation.update(0.1);
+    simulation.moveTo({ x: 58, y: simulation.pet.position.y });
+    expect(simulation.pet.intent).toBe('moveTo');
+    for (let frame = 0; frame < 120 && simulation.pet.intent === 'moveTo'; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('attention');
+    simulation.lookAtWall({ x: simulation.pet.position.x, y: 0 });
+    expect(simulation.pet.state).toBe('wallWag');
+    simulation.moveTo({ x: 300, y: simulation.pet.position.y });
+    expect(simulation.pet.intent).toBe('moveTo');
+    expect(['walk', 'jog']).toContain(simulation.pet.state);
   });
 
   it('moves a directed jog farther than a walk in either direction over the same elapsed time', () => {
@@ -143,7 +177,7 @@ describe('PetSimulation', () => {
     }
     expect(Math.abs(simulation.pet.position.x - targetX)).toBeLessThanOrEqual(3);
     expect(simulation.pet.intent).toBe('autonomous');
-    expect(simulation.pet.state).toBe('idle');
+    expect(simulation.pet.state).toBe('attention');
   });
 
   it('shortens an autonomous dash at mobile bounds without bouncing', () => {
@@ -177,7 +211,7 @@ describe('PetSimulation', () => {
     expect(simulation.pet.state).toBe('walk');
     for (let frame = 0; frame < 15 && simulation.pet.intent === 'moveTo'; frame += 1) simulation.update(0.1);
     expect(Math.abs(simulation.pet.position.x - nearTarget)).toBeLessThanOrEqual(3);
-    expect(simulation.pet.state).toBe('idle');
+    expect(simulation.pet.state).toBe('attention');
   });
 });
 

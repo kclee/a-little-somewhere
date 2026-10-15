@@ -6,12 +6,16 @@ type RandomSource = () => number;
 const WALK_SPEED = 48;
 const JOG_SPEED = WALK_SPEED * 5;
 const ATTENTION_SECONDS = 1.15;
+const ARRIVAL_ATTENTION_SECONDS = 1.75;
 const WALL_WAG_SECONDS = 2.5;
 const JOG_DISTANCE = 150;
+const WALL_NEAR_DISTANCE = 10;
+type ArrivalAction = 'attention' | 'wallWag';
 
 export class PetBehaviorMachine {
   private stateTimeRemaining = 1.3;
   private movementTarget: Point | null = null;
+  private arrivalAction: ArrivalAction | null = null;
 
   public constructor(private readonly random: RandomSource = Math.random) {}
 
@@ -24,9 +28,14 @@ export class PetBehaviorMachine {
       const dy = this.movementTarget.y - pet.position.y;
       const distance = Math.hypot(dx, dy);
       if (distance <= 3) {
+        pet.position = { ...this.movementTarget };
         this.movementTarget = null;
+        const arrivalAction = this.arrivalAction;
+        this.arrivalAction = null;
         pet.intent = 'autonomous';
-        this.chooseAutonomousState(pet, world);
+        if (arrivalAction === 'attention') this.enterState('attention', ARRIVAL_ATTENTION_SECONDS, pet);
+        else if (arrivalAction === 'wallWag') this.enterState('wallWag', WALL_WAG_SECONDS, pet);
+        else this.chooseAutonomousState(pet, world);
       } else {
         const speed = pet.state === 'jog' ? JOG_SPEED : WALK_SPEED;
         const frameSpeed = Math.min(speed, distance / Math.max(deltaSeconds, 0.001));
@@ -64,20 +73,31 @@ export class PetBehaviorMachine {
   }
 
   public moveTo(point: Point, pet: PetModel): void {
+    this.startMovement(point, pet, 'moveTo', 'attention');
+  }
+
+  public lookAtWall(point: Point, pet: PetModel, world: WorldSize): void {
+    const target = clampFloorPoint({ x: point.x, y: pet.position.y }, world);
+    if (Math.abs(target.x - pet.position.x) <= WALL_NEAR_DISTANCE) {
+      this.cancelMovement(pet);
+      this.enterState('wallWag', WALL_WAG_SECONDS, pet);
+      return;
+    }
+    this.startMovement(target, pet, 'wallMove', 'wallWag');
+  }
+
+  private startMovement(point: Point, pet: PetModel, intent: 'moveTo' | 'wallMove', arrivalAction: ArrivalAction): void {
     this.movementTarget = point;
-    pet.intent = 'moveTo';
+    this.arrivalAction = arrivalAction;
+    pet.intent = intent;
     const distance = Math.hypot(point.x - pet.position.x, point.y - pet.position.y);
     if (Math.abs(point.x - pet.position.x) > 1) pet.facing = point.x < pet.position.x ? -1 : 1;
     this.enterState(distance >= JOG_DISTANCE ? 'jog' : 'walk', Number.POSITIVE_INFINITY, pet);
   }
 
-  public lookAtWall(pet: PetModel): void {
-    this.cancelMovement(pet);
-    this.enterState('wallWag', WALL_WAG_SECONDS, pet);
-  }
-
   private cancelMovement(pet: PetModel): void {
     this.movementTarget = null;
+    this.arrivalAction = null;
     pet.intent = 'autonomous';
   }
 

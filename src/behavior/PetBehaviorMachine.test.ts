@@ -90,19 +90,47 @@ describe('PetBehaviorMachine', () => {
     pet.position = { x: 100, y: 468 };
     behavior.update(0.1, pet, world);
     expect(pet.intent).toBe('autonomous');
-    expect(pet.state).toBe('idle');
+    expect(pet.state).toBe('attention');
   });
 
   it('holds position during wall reaction, then returns to autonomy', () => {
     const pet = makePet();
     const behavior = new PetBehaviorMachine(() => 0);
     behavior.moveTo({ x: 320, y: 300 }, pet);
-    behavior.lookAtWall(pet);
+    behavior.lookAtWall({ x: 150, y: 10 }, pet, world);
     behavior.update(1, pet, world);
     expect(pet.state).toBe('wallWag');
     expect([pet.velocityX, pet.velocityY]).toEqual([0, 0]);
     behavior.update(1.6, pet, world);
     expect(pet.state).toBe('idle');
+  });
+
+  it('holds floor-arrival Attention through autonomous timer expiry, then resumes', () => {
+    const pet = makePet();
+    pet.position = { x: 150, y: 468 };
+    const behavior = new PetBehaviorMachine(() => 0);
+    behavior.moveTo({ x: 180, y: 468 }, pet);
+    pet.position.x = 180;
+    behavior.update(0.1, pet, world);
+    expect(pet.state).toBe('attention');
+    expect(pet.intent).toBe('autonomous');
+    behavior.update(1.6, pet, world);
+    expect(pet.state).toBe('attention');
+    behavior.update(0.2, pet, world);
+    expect(pet.state).toBe('idle');
+  });
+
+  it('replaces a pending wall reaction when a new floor click redirects movement', () => {
+    const pet = makePet();
+    pet.position = { x: 150, y: 468 };
+    const behavior = new PetBehaviorMachine(() => 0);
+    behavior.lookAtWall({ x: 340, y: 40 }, pet, world);
+    expect(pet.intent).toBe('wallMove');
+    behavior.moveTo({ x: 100, y: 468 }, pet);
+    pet.position.x = 100;
+    behavior.update(0.1, pet, world);
+    expect(pet.state).toBe('attention');
+    expect(pet.intent).toBe('autonomous');
   });
 });
 

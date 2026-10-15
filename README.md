@@ -2,29 +2,57 @@
 
 A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2D. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in its room.
 
-> Work in progress — current milestone: V0.3b movement, interactions, and playful Dash.
+> Work in progress — current milestone: V0.3b.1 interaction and shadow polish.
+
+## Version history
+
+- **V0.3b.1 — Interaction & Shadow Polish:** Sit shadow aligned with the seated paws; floor arrivals pause for Attention; wall clicks move horizontally before the rear-facing wag.
+- **V0.3b — Movement & Dash:** Floor-directed movement, occasional playful dashes, wall reaction, and pet status text.
+- **V0.3a — Room Personalities:** Switch between the Cozy Wood and Warm Tile rooms without resetting the pet.
+- **V0.2d — Rear Tail Wag:** A subtle three-frame wag while the Maltese faces away.
+- **V0.2c — Warm Cream Tile Room:** A second floor style alongside the original wood room.
+- **V0.2b — Walk Cycle:** Four-frame walking animation with grounded sprite and shadow alignment.
+- **V0.2a — Scene Props:** Pink donut cushion, striped pet house, and frog toy.
+- **V0.2 / V0.1 — First Companion:** Maltese pose artwork, then the initial room, autonomous behavior, and tap-to-look interaction.
 
 ## Work in progress
 
-### Cozy Wood Room
+The latest milestone aligns the Sit shadow beneath the seated paws and gives floor clicks a brief arrival head tilt. Wall clicks now move the Maltese horizontally before the tail wag. The Dash is best seen in the live app.
 
-![A Little Somewhere in the Cozy Wood Room](docs/images/v0.3a-cozy-wood-room.png)
+<img src="docs/images/v0.3b.1-sit-shadow-after.png" alt="V0.3b.1 Maltese sitting with its shadow beneath its paws" width="480">
+<img src="docs/images/v0.3b.1-interaction-floor-arrival.png" alt="V0.3b.1 Maltese pausing for an Attention head tilt after a floor click" width="480">
 
-### Warm Tile Room
-
-![A Little Somewhere in the Warm Tile Room](docs/images/v0.3a-warm-tile-room.png)
-
-The little house button switches rooms while the Maltese keeps wandering. Its picker and the mobile portrait layout look like this:
-
-<img src="docs/images/v0.3a-scene-picker.png" alt="The two-room scene picker" width="600">
-<img src="docs/images/v0.3a-shelf-tile-mobile.png" alt="Warm Tile Room at 390 by 844 mobile portrait size" width="390">
-
-These are visual checkpoints, not final artwork. New desktop and mobile captures will be added as the room and character evolve.
-
-V0.3b adds floor-click movement, occasional autonomous dashes, wall-facing tail wags, and a small pet status label. The images above preserve the V0.3a visual checkpoint; the Dash is best seen in the live app.
+These are work-in-progress visual checkpoints, not final artwork. When a new milestone is captured, its older views move into the section below.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
+
+#### V0.3b.1 — shadow comparison and interaction sequence
+
+Before the Sit shadow correction:
+
+<img src="docs/images/v0.3b.1-sit-shadow-before.png" alt="Before: Sit shadow sits slightly in front of the Maltese's paws" width="480">
+
+Floor movement → arrival Attention → wall movement → rear-facing wag:
+
+<img src="docs/images/v0.3b.1-interaction-floor-moving.png" alt="The Maltese moving toward a floor click" width="320">
+<img src="docs/images/v0.3b.1-interaction-floor-arrival.png" alt="The Maltese pausing for an Attention head tilt after arriving" width="320">
+<img src="docs/images/v0.3b.1-interaction-wall-moving.png" alt="The Maltese walking toward the wall click's floor position" width="320">
+<img src="docs/images/v0.3b.1-interaction-wall-wag.png" alt="The Maltese wagging after moving to the selected wall position" width="320">
+
+Mobile portrait (390 × 844), including a room switch during the wall action:
+
+<img src="docs/images/v0.3b.1-mobile-review-arrival.png" alt="Floor-click Attention arrival on mobile" width="260">
+<img src="docs/images/v0.3b.1-mobile-review-wood-wall-wag.png" alt="Wall reaction continues after switching to the wood room on mobile" width="260">
+
+#### V0.3a — room personalities
+
+![A Little Somewhere in the Cozy Wood Room](docs/images/v0.3a-cozy-wood-room.png)
+
+![A Little Somewhere in the Warm Tile Room](docs/images/v0.3a-warm-tile-room.png)
+
+<img src="docs/images/v0.3a-scene-picker.png" alt="The two-room scene picker" width="600">
+<img src="docs/images/v0.3a-shelf-tile-mobile.png" alt="Warm Tile Room at 390 by 844 mobile portrait size" width="390">
 
 #### V0.2c — walk cycle and cream tile room
 

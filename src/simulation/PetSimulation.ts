@@ -50,8 +50,8 @@ export class PetSimulation {
     this.behavior.moveTo(clampFloorPoint(point, this.world), this.pet);
   }
 
-  public lookAtWall(): void {
-    this.behavior.lookAtWall(this.pet);
+  public lookAtWall(point: Point): void {
+    this.behavior.lookAtWall(point, this.pet, this.world);
   }
 }
 

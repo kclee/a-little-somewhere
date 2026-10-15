@@ -10,7 +10,9 @@ const MALTESE_PHRASES: Record<PetState, string> = {
 };
 
 export function getPetStatus(pet: Pick<PetModel, 'state' | 'intent'>): string {
-  return pet.intent === 'moveTo' ? '我來啦！' : MALTESE_PHRASES[pet.state];
+  if (pet.intent === 'moveTo') return '我來啦！';
+  if (pet.intent === 'wallMove') return '去看看～';
+  return MALTESE_PHRASES[pet.state];
 }
 
 export class PetStatus {

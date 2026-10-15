@@ -536,7 +536,7 @@ export class CanvasRenderer {
 
   private drawPetShadow(pet: PetModel, spriteSize: number): void {
     const ctx = this.context;
-    const shadow = getPetShadowLayout(pet.state === 'wallWag' ? 'sit' : pet.state, spriteSize);
+    const shadow = getPetShadowLayout(pet.state, spriteSize);
     ctx.save();
     ctx.translate(pet.position.x + shadow.offsetX, pet.position.y + shadow.offsetY);
     ctx.scale(1, 0.26);

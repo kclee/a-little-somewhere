@@ -37,7 +37,7 @@ const input = new PointerInput(canvas, (point) => {
   const target = getInteractionTarget(point, simulation.pet, simulation.world);
   if (target === 'pet') simulation.interact(point);
   else if (target === 'floor') simulation.moveTo(point);
-  else if (target === 'wall') simulation.lookAtWall();
+  else if (target === 'wall') simulation.lookAtWall(point);
   // Static props reserve their hit areas for later interactions.
 });
 
