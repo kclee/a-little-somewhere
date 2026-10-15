@@ -8,11 +8,13 @@ export interface WorldSize {
   height: number;
 }
 
-export type PetState = 'idle' | 'walk' | 'sit' | 'attention';
+export type PetState = 'idle' | 'walk' | 'jog' | 'sit' | 'attention' | 'wallWag';
 
 export interface PetModel {
   position: Point;
   velocityX: number;
+  velocityY: number;
+  intent: 'autonomous' | 'moveTo';
   facing: -1 | 1;
   state: PetState;
   stateElapsed: number;

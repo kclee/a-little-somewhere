@@ -40,8 +40,8 @@ export class MalteseWalkCycle {
     return this.image.complete && this.image.naturalWidth > 0 ? this.image : null;
   }
 
-  public getSourceX(stateElapsed: number): number {
-    return getWalkFrameIndex(stateElapsed) * WALK_SHEET.frameWidth;
+  public getSourceX(stateElapsed: number, framesPerSecond = DEFAULT_WALK_FPS): number {
+    return getWalkFrameIndex(stateElapsed, framesPerSecond) * WALK_SHEET.frameWidth;
   }
 }
 

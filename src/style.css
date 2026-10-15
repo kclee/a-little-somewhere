@@ -37,12 +37,18 @@ body {
 }
 
 .title-bar {
+  position: relative;
+  z-index: 3;
   display: flex;
   flex: 0 0 auto;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 12px;
   padding: 0 4px;
+}
+
+.title-copy {
+  min-width: 0;
 }
 
 h1,
@@ -57,23 +63,13 @@ h1 {
   letter-spacing: -0.03em;
 }
 
-.eyebrow,
-.hint {
+.eyebrow {
   font-family: system-ui, sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-}
-
-.eyebrow {
   margin-bottom: 3px;
   color: #956f63;
-}
-
-.hint {
-  padding-bottom: 5px;
-  color: #765a52;
-  text-align: right;
 }
 
 .room-frame {
@@ -88,11 +84,25 @@ h1 {
 }
 
 .room-controls {
-  position: absolute;
-  z-index: 2;
-  top: 14px;
-  right: 14px;
+  position: relative;
+  flex: 0 0 auto;
   font-family: system-ui, sans-serif;
+}
+
+.pet-status {
+  position: absolute;
+  z-index: 1;
+  top: 14px;
+  left: 14px;
+  max-width: calc(100% - 90px);
+  padding: 9px 13px;
+  border: 1px solid rgb(115 81 70 / 15%);
+  border-radius: 999px;
+  color: #74564e;
+  background: rgb(255 249 240 / 88%);
+  box-shadow: 0 5px 15px rgb(97 64 51 / 10%);
+  font: 600 0.82rem/1.2 system-ui, sans-serif;
+  pointer-events: none;
 }
 
 .room-control-button {
@@ -135,9 +145,9 @@ h1 {
 
 .scene-picker {
   position: absolute;
-  top: 54px;
+  top: calc(100% + 8px);
   right: 0;
-  width: min(218px, calc(100vw - 48px));
+  width: min(218px, calc(100vw - 28px));
   padding: 9px;
   border: 1px solid rgb(115 81 70 / 18%);
   border-radius: 18px;
@@ -225,15 +235,6 @@ canvas:focus-visible {
     gap: 9px;
     padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
       max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  }
-
-  .title-bar {
-    align-items: start;
-  }
-
-  .hint {
-    max-width: 8rem;
-    padding-top: 4px;
   }
 
   .room-frame {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PetBehaviorMachine } from '../behavior/PetBehaviorMachine';
 import { PetSimulation } from './PetSimulation';
 
 describe('PetSimulation', () => {
@@ -17,7 +18,166 @@ describe('PetSimulation', () => {
     const simulation = new PetSimulation();
     simulation.update(5);
 
-    expect(simulation.elapsed).toBeCloseTo(0.1);
+    expect(simulation.elapsed).toBeCloseTo(0.25);
+  });
+
+  it('clamps floor destinations and reaches them without snapping back to the original ground line', () => {
+    const simulation = new PetSimulation();
+    simulation.resize(390, 767);
+    simulation.moveTo({ x: 1000, y: 1000 });
+    expect(simulation.pet.intent).toBe('moveTo');
+    for (let index = 0; index < 150 && simulation.pet.intent === 'moveTo'; index += 1) simulation.update(0.1);
+    expect(simulation.pet.position.x).toBeCloseTo(332);
+    expect(simulation.pet.position.y).toBeCloseTo(725);
+    expect(simulation.pet.intent).toBe('autonomous');
+  });
+
+  it('does not move the dog for wall or pet attention actions', () => {
+    const simulation = new PetSimulation();
+    simulation.resize(390, 767);
+    const original = { ...simulation.pet.position };
+    simulation.lookAtWall();
+    simulation.update(0.5);
+    expect(simulation.pet.position).toEqual(original);
+    simulation.interact({ x: 10, y: 10 });
+    simulation.update(0.5);
+    expect(simulation.pet.position).toEqual(original);
+  });
+
+  it('moves a directed jog farther than a walk in either direction over the same elapsed time', () => {
+    for (const direction of [-1, 1]) {
+      const walk = new PetSimulation();
+      const jog = new PetSimulation();
+      walk.resize(1000, 800);
+      jog.resize(1000, 800);
+      const startX = walk.pet.position.x;
+      const y = walk.pet.position.y;
+      walk.moveTo({ x: startX + direction * 120, y });
+      jog.moveTo({ x: startX + direction * 300, y });
+      expect(walk.pet.state).toBe('walk');
+      expect(jog.pet.state).toBe('jog');
+
+      for (let frame = 0; frame < 60; frame += 1) {
+        walk.update(1 / 60);
+        jog.update(1 / 60);
+      }
+
+      const walkDistance = Math.abs(walk.pet.position.x - startX);
+      const jogDistance = Math.abs(jog.pet.position.x - startX);
+      expect(walkDistance).toBeCloseTo(48);
+      expect(jogDistance).toBeCloseTo(240);
+      expect(jogDistance / walkDistance).toBeCloseTo(5);
+    }
+  });
+
+  it('keeps jog displacement independent of frame subdivision', () => {
+    const coarse = new PetSimulation();
+    const fine = new PetSimulation();
+    for (const simulation of [coarse, fine]) {
+      simulation.resize(1000, 800);
+      simulation.moveTo({ x: 800, y: simulation.pet.position.y });
+    }
+    for (let frame = 0; frame < 10; frame += 1) coarse.update(0.1);
+    for (let frame = 0; frame < 20; frame += 1) fine.update(0.05);
+    expect(coarse.pet.position.x).toBeCloseTo(fine.pet.position.x);
+  });
+
+  it('preserves the dash distance during ordinary slow frames', () => {
+    const simulation = new PetSimulation();
+    simulation.resize(1000, 800);
+    const startX = simulation.pet.position.x;
+    simulation.moveTo({ x: 800, y: simulation.pet.position.y });
+    for (let frame = 0; frame < 5; frame += 1) simulation.update(0.2);
+    expect(simulation.pet.position.x - startX).toBeCloseTo(240);
+    expect(simulation.pet.state).toBe('jog');
+  });
+
+  it('uses the faster displacement for occasional autonomous jogs too', () => {
+    const walk = new PetSimulation(new PetBehaviorMachine(() => 0.5));
+    const jog = new PetSimulation(new PetBehaviorMachine(() => 0.75));
+    for (const simulation of [walk, jog]) {
+      simulation.resize(1000, 800);
+      for (let frame = 0; frame < 14; frame += 1) simulation.update(0.1);
+    }
+    expect(walk.pet.state).toBe('walk');
+    expect(jog.pet.state).toBe('jog');
+    const walkStart = walk.pet.position.x;
+    const jogStart = jog.pet.position.x;
+    for (let frame = 0; frame < 10; frame += 1) {
+      walk.update(0.1);
+      jog.update(0.1);
+    }
+    expect(walk.pet.position.x - walkStart).toBeCloseTo(48);
+    expect(jog.pet.position.x - jogStart).toBeCloseTo(240);
+  });
+
+  it('keeps an autonomous desktop dash active until its planned destination', () => {
+    const values = [0.75, 0.75, 0.5, 0];
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => values.shift() ?? 0));
+    simulation.resize(1000, 800);
+    for (let frame = 0; frame < 14; frame += 1) simulation.update(0.1);
+    const startX = simulation.pet.position.x;
+    expect(simulation.pet.state).toBe('jog');
+    expect(simulation.pet.intent).toBe('autonomous');
+    for (let frame = 0; frame < 12; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('jog');
+    expect(simulation.pet.position.x - startX).toBeCloseTo(288);
+    for (let frame = 0; frame < 8; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('idle');
+    expect(simulation.pet.position.x - startX).toBeCloseTo(420);
+  });
+
+  it('keeps a long click-directed dash active for the entire unobstructed route', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
+    simulation.resize(1200, 800);
+    const targetX = 1100;
+    simulation.moveTo({ x: targetX, y: simulation.pet.position.y });
+    expect(simulation.pet.state).toBe('jog');
+    for (let frame = 0; frame < 20; frame += 1) {
+      simulation.update(0.1);
+      expect(simulation.pet.state).toBe('jog');
+    }
+    expect(simulation.pet.position.x).toBeCloseTo(1080);
+    for (let frame = 0; frame < 5 && simulation.pet.intent === 'moveTo'; frame += 1) {
+      simulation.update(0.1);
+    }
+    expect(Math.abs(simulation.pet.position.x - targetX)).toBeLessThanOrEqual(3);
+    expect(simulation.pet.intent).toBe('autonomous');
+    expect(simulation.pet.state).toBe('idle');
+  });
+
+  it('shortens an autonomous dash at mobile bounds without bouncing', () => {
+    const values = [0.75, 0.75, 0.5, 0];
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => values.shift() ?? 0));
+    simulation.resize(390, 767);
+    for (let frame = 0; frame < 14; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('jog');
+    const startX = simulation.pet.position.x;
+    for (let frame = 0; frame < 20; frame += 1) {
+      simulation.update(0.1);
+      expect(simulation.pet.position.x).toBeLessThanOrEqual(332);
+      expect(simulation.pet.position.x).toBeGreaterThanOrEqual(startX);
+    }
+    expect(simulation.pet.position.x).toBeCloseTo(332);
+    expect(simulation.pet.state).toBe('idle');
+  });
+
+  it('redirects repeated floor clicks during a jog without stale timer transitions', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
+    simulation.resize(1000, 800);
+    simulation.moveTo({ x: 800, y: simulation.pet.position.y });
+    simulation.update(0.1);
+    expect(simulation.pet.state).toBe('jog');
+    simulation.moveTo({ x: 200, y: simulation.pet.position.y });
+    simulation.update(0.1);
+    expect(simulation.pet.state).toBe('jog');
+    expect(simulation.pet.velocityX).toBeLessThan(0);
+    const nearTarget = simulation.pet.position.x - 40;
+    simulation.moveTo({ x: nearTarget, y: simulation.pet.position.y });
+    expect(simulation.pet.state).toBe('walk');
+    for (let frame = 0; frame < 15 && simulation.pet.intent === 'moveTo'; frame += 1) simulation.update(0.1);
+    expect(Math.abs(simulation.pet.position.x - nearTarget)).toBeLessThanOrEqual(3);
+    expect(simulation.pet.state).toBe('idle');
   });
 });
 

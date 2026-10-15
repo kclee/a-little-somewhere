@@ -1,5 +1,6 @@
 import type { PetModel, WorldSize } from '../core/types';
-import { WALK_SHEET } from '../walk-cycle/WalkCycleModel';
+import { FLOOR_START_RATIO } from '../core/RoomGeometry';
+import { DEFAULT_WALK_FPS, WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
   MALTESE_SPRITES,
   MalteseSpriteSet,
@@ -12,7 +13,7 @@ import {
   shouldMirrorWalkCycle,
 } from './MalteseWalkCycle';
 import { getPetShadowLayout } from './PetShadow';
-import { RearTailWagSpriteSet } from './RearTailWag';
+import { RearTailWagSpriteSet, REAR_TAIL_WAG_CYCLE_SECONDS, REAR_TAIL_WAG_START_SECONDS } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
 import { ScenePropAssets } from './ScenePropAssets';
 import { drawSceneProps } from './SceneProps';
@@ -58,7 +59,7 @@ export class CanvasRenderer {
     const ctx = this.context;
     const w = this.width;
     const h = this.height;
-    const floorY = h * 0.58;
+    const floorY = h * FLOOR_START_RATIO;
 
     const wall = ctx.createLinearGradient(0, 0, 0, floorY);
     wall.addColorStop(0, this.scene.wallTopColor);
@@ -437,7 +438,7 @@ export class CanvasRenderer {
   }
 
   private drawPet(pet: PetModel, elapsed: number): void {
-    if (pet.state === 'walk' && this.drawWalkCyclePet(pet)) return;
+    if ((pet.state === 'walk' || pet.state === 'jog') && this.drawWalkCyclePet(pet)) return;
 
     if (!this.drawSpritePet(pet, elapsed)) {
       this.drawPlaceholderPet(pet, elapsed);
@@ -457,12 +458,18 @@ export class CanvasRenderer {
 
     ctx.save();
     ctx.translate(pet.position.x, pet.position.y);
+    if (pet.state === 'jog') {
+      const takeoff = Math.max(0, 1 - pet.stateElapsed / 0.1);
+      ctx.rotate(pet.facing * 0.025 * (1 - takeoff));
+      ctx.scale(1 + 0.04 * takeoff, 1 - 0.06 * takeoff);
+    }
     ctx.scale(mirrorX, 1);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(
       image,
-      this.malteseWalkCycle.getSourceX(pet.stateElapsed),
+      // The same four frames run faster for a dash; the feet anchor stays fixed.
+      this.malteseWalkCycle.getSourceX(pet.stateElapsed, pet.state === 'jog' ? 12 : DEFAULT_WALK_FPS),
       0,
       WALK_SHEET.frameWidth,
       WALK_SHEET.frameHeight,
@@ -477,15 +484,20 @@ export class CanvasRenderer {
 
   private drawSpritePet(pet: PetModel, elapsed: number): boolean {
     const pose = selectMaltesePose(pet);
-    const rearTailWagFrame =
-      pet.state === 'sit' ? this.rearTailWagSprites.getFrame(pet.stateElapsed) : null;
+    const rearTailWagFrame = pet.state === 'sit' || pet.state === 'wallWag'
+      ? this.rearTailWagSprites.getFrame(
+        pet.state === 'wallWag'
+          ? pet.stateElapsed % REAR_TAIL_WAG_CYCLE_SECONDS + REAR_TAIL_WAG_START_SECONDS
+          : pet.stateElapsed,
+      )
+      : null;
     const image = rearTailWagFrame?.image ?? this.malteseSprites.get(pose);
     if (!image) return false;
 
     const ctx = this.context;
     const definition = rearTailWagFrame?.definition ?? MALTESE_SPRITES[pose];
-    const walking = pet.state === 'walk';
-    const sitting = pet.state === 'sit';
+    const walking = pet.state === 'walk' || pet.state === 'jog';
+    const sitting = pet.state === 'sit' || pet.state === 'wallWag';
     const attentive = pet.state === 'attention';
     const stepPhase = Math.sin(pet.stateElapsed * 9);
     const bob = walking ? Math.abs(stepPhase) * -2.4 : Math.sin(elapsed * 2.1) * 0.65;
@@ -524,7 +536,7 @@ export class CanvasRenderer {
 
   private drawPetShadow(pet: PetModel, spriteSize: number): void {
     const ctx = this.context;
-    const shadow = getPetShadowLayout(pet.state, spriteSize);
+    const shadow = getPetShadowLayout(pet.state === 'wallWag' ? 'sit' : pet.state, spriteSize);
     ctx.save();
     ctx.translate(pet.position.x + shadow.offsetX, pet.position.y + shadow.offsetY);
     ctx.scale(1, 0.26);
@@ -537,8 +549,8 @@ export class CanvasRenderer {
 
   private drawPlaceholderPet(pet: PetModel, elapsed: number): void {
     const ctx = this.context;
-    const walking = pet.state === 'walk';
-    const sitting = pet.state === 'sit';
+    const walking = pet.state === 'walk' || pet.state === 'jog';
+    const sitting = pet.state === 'sit' || pet.state === 'wallWag';
     const attentive = pet.state === 'attention';
     const bob = walking ? Math.sin(pet.stateElapsed * 11) * 2.5 : Math.sin(elapsed * 2.2) * 0.8;
     const scale = Math.max(0.78, Math.min(1.18, Math.min(this.width / 430, this.height / 600)));

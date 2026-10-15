@@ -54,8 +54,8 @@ export const MALTESE_SPRITES: Record<MaltesePose, MalteseSpriteDefinition> = {
 };
 
 export function selectMaltesePose(pet: Pick<PetModel, 'state' | 'facing'>): MaltesePose {
-  if (pet.state === 'walk') return pet.facing === -1 ? 'sideLeft' : 'sideRight';
-  if (pet.state === 'sit') return 'back';
+  if (pet.state === 'walk' || pet.state === 'jog') return pet.facing === -1 ? 'sideLeft' : 'sideRight';
+  if (pet.state === 'sit' || pet.state === 'wallWag') return 'back';
   if (pet.state === 'attention') return 'attention';
   return 'front';
 }

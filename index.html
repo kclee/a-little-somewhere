@@ -10,13 +10,10 @@
   <body>
     <main class="app">
       <header class="title-bar">
-        <div>
+        <div class="title-copy">
           <p class="eyebrow">A quiet little companion</p>
           <h1>A Little Somewhere</h1>
         </div>
-        <p class="hint">Tap somewhere in the room</p>
-      </header>
-      <section class="room-frame" aria-label="Virtual pet room">
         <div class="room-controls" data-scene-controls>
           <button
             class="room-control-button"
@@ -46,10 +43,13 @@
             </button>
           </div>
         </div>
+      </header>
+      <section class="room-frame" aria-label="Virtual pet room">
+        <p class="pet-status" role="status" aria-live="polite" data-pet-status></p>
         <canvas
           id="room"
           role="img"
-          aria-label="A tiny white Maltese relaxing in a cozy illustrated room. Tap or click to get the dog's attention."
+          aria-label="A tiny white Maltese in a cozy illustrated room. Tap the dog for attention, the floor to call it over, or the wall to make it look around."
         ></canvas>
       </section>
     </main>

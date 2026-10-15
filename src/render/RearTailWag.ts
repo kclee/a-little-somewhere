@@ -54,6 +54,7 @@ const REAR_TAIL_WAG_SEQUENCE: readonly RearTailWagPose[] = [
   'right',
   'neutral',
 ];
+export const REAR_TAIL_WAG_CYCLE_SECONDS = REAR_TAIL_WAG_SEQUENCE.length * REAR_TAIL_WAG_FRAME_SECONDS;
 
 export function getRearTailWagPose(stateElapsed: number): RearTailWagPose {
   const animationElapsed = stateElapsed - REAR_TAIL_WAG_START_SECONDS;

@@ -2,7 +2,7 @@
 
 A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2D. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in its room.
 
-> Work in progress — current milestone: V0.3a scene switching and room personalities.
+> Work in progress — current milestone: V0.3b movement, interactions, and playful Dash.
 
 ## Work in progress
 
@@ -20,6 +20,8 @@ The little house button switches rooms while the Maltese keeps wandering. Its pi
 <img src="docs/images/v0.3a-shelf-tile-mobile.png" alt="Warm Tile Room at 390 by 844 mobile portrait size" width="390">
 
 These are visual checkpoints, not final artwork. New desktop and mobile captures will be added as the room and character evolve.
+
+V0.3b adds floor-click movement, occasional autonomous dashes, wall-facing tail wags, and a small pet status label. The images above preserve the V0.3a visual checkpoint; the Dash is best seen in the live app.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
