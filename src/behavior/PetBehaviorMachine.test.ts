@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PetModel, WorldSize } from '../core/types';
+import { getMovementBounds } from '../core/RoomGeometry';
 import { PetBehaviorMachine } from './PetBehaviorMachine';
 
 const makePet = (): PetModel => ({
@@ -124,7 +125,7 @@ describe('PetBehaviorMachine', () => {
     behavior.moveTo({ x: 100, y: 220 }, pet);
     behavior.update(0.1, pet, world);
     expect(pet.velocityX).toBeLessThan(0);
-    pet.position = { x: 100, y: 468 };
+    pet.position = { x: 100, y: getMovementBounds(world).minY };
     behavior.update(0.1, pet, world);
     expect(pet.intent).toBe('autonomous');
     expect(pet.state).toBe('attention');

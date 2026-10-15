@@ -213,13 +213,43 @@ h1 {
   gap: 12px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 54px 16px 16px;
+  padding: 25px 16px 16px;
   scrollbar-color: #d8bbab transparent;
+}
+
+.jimmy-photo-heading {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: 100%;
+  margin-bottom: 3px;
+  color: #765a52;
+  text-align: center;
+}
+
+.jimmy-photo-eyebrow {
+  font: 600 0.65rem/1.15 system-ui, sans-serif;
+  letter-spacing: 0.13em;
+  color: #a38276;
+}
+
+.jimmy-photo-heading h2 {
+  margin: 0;
+  color: #5b443d;
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.jimmy-photo-subtitle {
+  font: 500 0.8rem/1.2 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  color: #92736a;
 }
 
 .jimmy-photo-scroll img {
   display: block;
-  width: min(100%, 248px);
+  width: min(100%, 232px);
   aspect-ratio: 1;
   border-radius: 14px;
   object-fit: cover;
@@ -313,6 +343,12 @@ canvas:focus-visible {
   outline-offset: -6px;
 }
 
+@media (min-width: 521px) and (max-height: 850px) {
+  .jimmy-photo-scroll img {
+    width: min(100%, 200px);
+  }
+}
+
 @media (max-width: 520px) {
   .app {
     gap: 9px;
@@ -334,7 +370,7 @@ canvas:focus-visible {
   }
 
   .jimmy-photo-scroll {
-    padding: 50px 12px 12px;
+    padding: 23px 12px 12px;
   }
 
   .jimmy-photo-dialog {

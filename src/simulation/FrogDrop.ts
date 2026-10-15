@@ -1,4 +1,4 @@
-import { FLOOR_START_RATIO } from '../core/RoomGeometry';
+import { getFloorStartY } from '../core/RoomGeometry';
 import type { Point, WorldSize } from '../core/types';
 import { getScenePropLayout } from '../render/SceneProps';
 
@@ -8,7 +8,7 @@ export function getFrogFloorBounds(world: WorldSize) {
   const frog = getScenePropLayout(world).frog;
   const margin = 6;
   const minX = frog.width / 2 + margin;
-  const minY = world.height * FLOOR_START_RATIO + frog.height / 2 + margin;
+  const minY = getFloorStartY(world) + frog.height / 2 + margin;
   return {
     minX,
     maxX: Math.max(minX, world.width - frog.width / 2 - margin),

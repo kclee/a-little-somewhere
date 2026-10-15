@@ -25,10 +25,12 @@ export class HouseVisitController {
     return false;
   }
 
-  public getVisual(): HouseVisual {
+  public getVisual(sleeping = false): HouseVisual {
     if (!this.active) return { occupied: false, hidePet: false, wiggle: 0 };
     if (this.elapsed >= HOUSE_WIGGLE_SECONDS) {
-      return { occupied: true, hidePet: true, wiggle: 0 };
+      return sleeping
+        ? { occupied: true, hidePet: true, wiggle: 0, sleeping: true }
+        : { occupied: true, hidePet: true, wiggle: 0 };
     }
     const progress = this.elapsed / HOUSE_WIGGLE_SECONDS;
     return {

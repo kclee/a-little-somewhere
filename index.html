@@ -69,11 +69,17 @@
         ></canvas>
       </section>
     </main>
-    <dialog class="jimmy-photo-dialog" aria-label="Jimmy photos" data-photo-dialog>
+    <dialog class="jimmy-photo-dialog" aria-labelledby="jimmy-photo-heading" data-photo-dialog>
       <button class="jimmy-photo-close" type="button" aria-label="Close photos" data-photo-close>
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6 18 18M18 6 6 18" /></svg>
       </button>
-      <div class="jimmy-photo-scroll" data-photo-list></div>
+      <div class="jimmy-photo-scroll" data-photo-list>
+        <div class="jimmy-photo-heading">
+          <p class="jimmy-photo-eyebrow">A Little Friend</p>
+          <h2 id="jimmy-photo-heading">Maltese</h2>
+          <p class="jimmy-photo-subtitle">馬爾濟斯</p>
+        </div>
+      </div>
     </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>

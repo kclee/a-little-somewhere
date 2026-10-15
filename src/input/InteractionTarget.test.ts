@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PetModel, WorldSize } from '../core/types';
+import { getFloorStartY } from '../core/RoomGeometry';
 import { getDonutRestPoint, getScenePropLayout } from '../render/SceneProps';
 import { getInteractionTarget } from './InteractionTarget';
 
@@ -24,6 +25,10 @@ describe('interaction targeting', () => {
     const props = getScenePropLayout(world);
     expect(getInteractionTarget({ x: props.frog.x, y: props.frog.baseline }, pet, world)).toBe('frog');
     expect(getInteractionTarget({ x: props.cushion.x, y: props.cushion.y }, pet, world)).toBe('cushion');
+    expect(getInteractionTarget({
+      x: props.cushion.x + props.cushion.width / 2 + 4,
+      y: props.cushion.y,
+    }, pet, world)).toBe('floor');
   });
 
   it('follows the single frog hit area after it leaves the house', () => {
@@ -44,5 +49,6 @@ describe('interaction targeting', () => {
   it('distinguishes empty wall and floor', () => {
     expect(getInteractionTarget({ x: 20, y: 200 }, pet, world)).toBe('wall');
     expect(getInteractionTarget({ x: 20, y: 700 }, pet, world)).toBe('floor');
+    expect(getInteractionTarget({ x: 20, y: getFloorStartY(world) + 4 }, pet, world)).toBe('floor');
   });
 });

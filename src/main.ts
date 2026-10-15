@@ -117,8 +117,9 @@ const frame = (now: number): void => {
   const house = getScenePropLayout(simulation.world).house;
   renderer.render(
     simulation.pet, simulation.elapsed, expressions.sample(simulation.elapsed),
-    frogPlay.getVisual(simulation.world), houseVisit.getVisual(),
+    frogPlay.getVisual(simulation.world), houseVisit.getVisual(sleeping && simulation.restPlace === 'house'),
     sleeping && simulation.restPlace === 'house' ? { x: house.x, y: house.baseline } : undefined,
+    sleeping && simulation.restPlace === 'donut',
   );
   requestAnimationFrame(frame);
 };

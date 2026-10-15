@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PetBehaviorMachine } from '../behavior/PetBehaviorMachine';
+import { FLOOR_START_RATIO, getFloorStartY, getMovementBounds } from '../core/RoomGeometry';
 import { PetSimulation } from './PetSimulation';
 
 describe('PetSimulation', () => {
@@ -9,8 +10,8 @@ describe('PetSimulation', () => {
 
     simulation.resize(320, 700);
 
-    expect(simulation.pet.position.x).toBeGreaterThanOrEqual(58);
-    expect(simulation.pet.position.x).toBeLessThanOrEqual(262);
+    expect(simulation.pet.position.x).toBeGreaterThanOrEqual(80);
+    expect(simulation.pet.position.x).toBeLessThanOrEqual(240);
     expect(simulation.pet.position.y).toBeCloseTo(546);
   });
 
@@ -27,9 +28,25 @@ describe('PetSimulation', () => {
     simulation.moveTo({ x: 1000, y: 1000 });
     expect(simulation.pet.intent).toBe('moveTo');
     for (let index = 0; index < 150 && simulation.pet.intent === 'moveTo'; index += 1) simulation.update(0.1);
-    expect(simulation.pet.position.x).toBeCloseTo(332);
+    expect(simulation.pet.position.x).toBeCloseTo(310);
     expect(simulation.pet.position.y).toBeCloseTo(725);
     expect(simulation.pet.intent).toBe('autonomous');
+  });
+
+  it('can actually reach the newly exposed upper mobile floor', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
+    simulation.resize(366, 767);
+    const upperFloor = getMovementBounds(simulation.world).minY;
+    expect(upperFloor).toBeLessThan(
+      simulation.world.height * FLOOR_START_RATIO + Math.min(165, simulation.world.height * 0.2),
+    );
+    expect(upperFloor).toBeGreaterThan(getFloorStartY(simulation.world));
+    simulation.moveTo({ x: 110, y: upperFloor });
+    for (let frame = 0; frame < 180 && simulation.pet.intent === 'moveTo'; frame += 1) {
+      simulation.update(0.1);
+    }
+    expect(simulation.pet.position.y).toBeCloseTo(upperFloor);
+    expect(simulation.pet.state).toBe('attention');
   });
 
   it('skips movement for a nearby wall click and still holds pet attention', () => {
@@ -54,7 +71,7 @@ describe('PetSimulation', () => {
       simulation.update(0.1);
       expect(simulation.pet.position.y).toBeCloseTo(startY);
     }
-    expect(simulation.pet.position.x).toBeCloseTo(332);
+    expect(simulation.pet.position.x).toBeCloseTo(310);
     expect(simulation.pet.state).toBe('wallWag');
     for (let frame = 0; frame < 24; frame += 1) simulation.update(0.1);
     expect(simulation.pet.state).toBe('wallWag');
@@ -65,7 +82,7 @@ describe('PetSimulation', () => {
   it('lets a new click interrupt a wall move or arrival wag immediately', () => {
     const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
     simulation.resize(390, 767);
-    simulation.lookAtWall({ x: 332, y: 0 });
+    simulation.lookAtWall({ x: 310, y: 0 });
     simulation.update(0.1);
     simulation.moveTo({ x: 58, y: simulation.pet.position.y });
     expect(simulation.pet.intent).toBe('moveTo');
@@ -189,10 +206,10 @@ describe('PetSimulation', () => {
     const startX = simulation.pet.position.x;
     for (let frame = 0; frame < 20; frame += 1) {
       simulation.update(0.1);
-      expect(simulation.pet.position.x).toBeLessThanOrEqual(332);
+      expect(simulation.pet.position.x).toBeLessThanOrEqual(310);
       expect(simulation.pet.position.x).toBeGreaterThanOrEqual(startX);
     }
-    expect(simulation.pet.position.x).toBeCloseTo(332);
+    expect(simulation.pet.position.x).toBeCloseTo(310);
     expect(simulation.pet.state).toBe('idle');
   });
 

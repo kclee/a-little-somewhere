@@ -54,6 +54,7 @@ describe('pet-house visit', () => {
     expect(simulation.restPhase).toBe('sleeping');
     expect(simulation.pet.position).toEqual(arrivalPosition);
     expect(visit.getVisual()).toEqual({ occupied: true, hidePet: true, wiggle: 0 });
+    expect(visit.getVisual(true)).toEqual({ occupied: true, hidePet: true, wiggle: 0, sleeping: true });
   });
 
   it('ignores repeated house clicks during approach and the entry wiggle', () => {

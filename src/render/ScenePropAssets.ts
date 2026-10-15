@@ -31,6 +31,14 @@ export const PET_HOUSE_OCCUPIED: ScenePropSpriteDefinition = {
   crop: { x: 19, y: 68, width: 1222, height: 1113 },
 };
 
+// Both occupied views share source geometry so falling asleep cannot move or
+// resize the tent. The awake image remains the fallback while this loads.
+export const PET_HOUSE_OCCUPIED_SLEEPING: ScenePropSpriteDefinition = {
+  file: 'pet-house-occupied-sleeping.png',
+  canvasSize: PET_HOUSE_OCCUPIED.canvasSize,
+  crop: PET_HOUSE_OCCUPIED.crop,
+};
+
 export const FROG_TOY: ScenePropSpriteDefinition = {
   file: 'frog-toy.png',
   canvasSize: [1254, 1254],
@@ -41,6 +49,7 @@ export interface ScenePropImages {
   donutPetBed: HTMLImageElement | null;
   petHouse: HTMLImageElement | null;
   petHouseOccupied: HTMLImageElement | null;
+  petHouseOccupiedSleeping: HTMLImageElement | null;
   frogToy: HTMLImageElement | null;
 }
 
@@ -48,12 +57,14 @@ export class ScenePropAssets {
   private readonly donutPetBed: HTMLImageElement;
   private readonly petHouse: HTMLImageElement;
   private readonly petHouseOccupied: HTMLImageElement;
+  private readonly petHouseOccupiedSleeping: HTMLImageElement;
   private readonly frogToy: HTMLImageElement;
 
   public constructor(baseUrl = document.baseURI) {
     this.donutPetBed = this.load(DONUT_PET_BED, baseUrl);
     this.petHouse = this.load(PET_HOUSE, baseUrl);
     this.petHouseOccupied = this.load(PET_HOUSE_OCCUPIED, baseUrl);
+    this.petHouseOccupiedSleeping = this.load(PET_HOUSE_OCCUPIED_SLEEPING, baseUrl);
     this.frogToy = this.load(FROG_TOY, baseUrl);
   }
 
@@ -62,6 +73,7 @@ export class ScenePropAssets {
       donutPetBed: this.ready(this.donutPetBed),
       petHouse: this.ready(this.petHouse),
       petHouseOccupied: this.ready(this.petHouseOccupied),
+      petHouseOccupiedSleeping: this.ready(this.petHouseOccupiedSleeping),
       frogToy: this.ready(this.frogToy),
     };
   }

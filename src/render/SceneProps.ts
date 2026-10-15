@@ -1,4 +1,5 @@
 import type { Point, WorldSize } from '../core/types';
+import { isMobilePortrait } from '../core/RoomGeometry';
 import {
   DONUT_PET_BED,
   FROG_TOY,
@@ -28,6 +29,17 @@ export interface HouseVisual {
   occupied: boolean;
   hidePet: boolean;
   wiggle: number;
+  sleeping?: boolean;
+}
+
+export function getOccupiedHouseImage(
+  images: Pick<ScenePropImages, 'petHouseOccupied' | 'petHouseOccupiedSleeping'>,
+  visual?: HouseVisual,
+): HTMLImageElement | null {
+  if (!visual?.occupied) return null;
+  return visual.sleeping
+    ? images.petHouseOccupiedSleeping ?? images.petHouseOccupied
+    : images.petHouseOccupied;
 }
 
 export function isFrogForeground(frog?: FrogVisual): boolean {
@@ -46,7 +58,9 @@ export function getScenePropLayout(world: WorldSize): ScenePropLayout {
     const houseHeight = houseWidth * houseAspect;
     const houseX = world.width - houseWidth / 2 - 8;
     const houseBaseline = petGround - 6;
-    const cushionWidth = clamp(world.width * 0.5, 158, 194);
+    const cushionWidth = isMobilePortrait(world)
+      ? clamp(world.width * 0.39, 134, 164)
+      : clamp(world.width * 0.5, 158, 194);
     const cushionHeight = cushionWidth * cushionAspect;
     const frogWidth = clamp(world.width * 0.15, 52, 62);
     return {
@@ -129,8 +143,9 @@ export function drawSceneProps(
   context.translate(layout.house.x, layout.house.baseline);
   context.rotate(houseVisual?.wiggle ?? 0);
   const localHouse = { x: 0, baseline: 0, width: layout.house.width, height: layout.house.height };
-  if (houseVisual?.occupied && images.petHouseOccupied) {
-    drawScenePropSprite(context, localHouse, images.petHouseOccupied, PET_HOUSE_OCCUPIED);
+  const occupiedImage = getOccupiedHouseImage(images, houseVisual);
+  if (occupiedImage) {
+    drawScenePropSprite(context, localHouse, occupiedImage, PET_HOUSE_OCCUPIED);
   } else if (images.petHouse) {
     drawScenePropSprite(context, localHouse, images.petHouse, PET_HOUSE);
   } else drawPetHouseFallback(context, localHouse);

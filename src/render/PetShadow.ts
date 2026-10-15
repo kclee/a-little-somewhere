@@ -1,5 +1,5 @@
 import type { PetState } from '../core/types';
-import type { MaltesePose } from './MalteseSpriteSet';
+import { isFrontMaltesePose, type MaltesePose } from './MalteseSpriteSet';
 
 const REAR_SPRITE_SIZE = 1254;
 const SIT_CONTACT_OFFSET_X = 138 / REAR_SPRITE_SIZE;
@@ -27,7 +27,7 @@ export function getPetShadowLayout(
   pose?: MaltesePose,
 ): PetShadowLayout {
   const sitting = state === 'sit' || state === 'wallWag';
-  const front = state === 'idle' && pose === 'front';
+  const front = state === 'idle' && pose !== undefined && isFrontMaltesePose(pose);
   return {
     // The supplied rear poses share a ground-contact center 138 source pixels
     // right of their canvas center. Keep the shadow in world space so the dog

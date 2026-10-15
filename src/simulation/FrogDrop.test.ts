@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FLOOR_START_RATIO, getMovementBounds } from '../core/RoomGeometry';
+import { getFloorStartY, getMovementBounds } from '../core/RoomGeometry';
 import type { WorldSize } from '../core/types';
 import { getScenePropLayout } from '../render/SceneProps';
 import { getFrogFloorBounds, resolveFrogDrop } from './FrogDrop';
@@ -28,7 +28,7 @@ describe('frog drop regions', () => {
       const y = bounds.minY + 18;
       const drop = resolveFrogDrop({ x: world.width * 0.3, y }, { x: 0, y: 0 }, world);
       expect(drop.position?.y).toBe(y);
-      expect(y).toBeGreaterThan(world.height * FLOOR_START_RATIO);
+      expect(y).toBeGreaterThan(getFloorStartY(world));
       expect(y).toBeLessThan(getMovementBounds(world).minY);
     });
   }

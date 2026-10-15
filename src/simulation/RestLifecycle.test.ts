@@ -60,7 +60,34 @@ describe('shared rest and sleep lifecycle', () => {
     expect(pet.restPhase).toBe('sleeping');
     expect(pet.pet.position).toEqual(position);
     expect(house.getVisual()).toEqual({ occupied: true, hidePet: true, wiggle: 0 });
+    expect(house.getVisual(pet.restPhase === 'sleeping')).toMatchObject({ occupied: true, sleeping: true });
   });
+
+  it.each(['floor', 'wall', 'dog', 'frog', 'donut'] as const)(
+    'changes the sleeping house back to empty before handling a %s wake request',
+    (action) => {
+      const { pet, house } = setup();
+      enterHouse(pet, house);
+      advance(pet, house, REST_SLEEP_SECONDS + 0.1);
+      expect(house.getVisual(true).sleeping).toBe(true);
+      if (action === 'floor') pet.moveTo({ x: 160, y: 700 });
+      if (action === 'wall') pet.lookAtWall({ x: 160, y: 20 });
+      if (action === 'dog') pet.interact({ x: 160, y: 700 });
+      if (action === 'frog') pet.playWithFrog({ x: 160, y: 700 });
+      if (action === 'donut') pet.restAtDonut(getDonutRestPoint(pet.world));
+      expect(pet.restPhase).toBe('waking');
+      advance(pet, house, 0.05);
+      expect(house.getVisual()).toEqual({ occupied: false, hidePet: false, wiggle: 0 });
+      advance(pet, house, REST_WAKE_SECONDS + 0.05);
+      expect(pet.restPhase === 'waking').toBe(false);
+      expect(house.getVisual().occupied).toBe(false);
+      if (action === 'floor') expect(pet.pet.intent).toBe('moveTo');
+      if (action === 'wall') expect(['wallMove', 'autonomous']).toContain(pet.pet.intent);
+      if (action === 'dog') expect(pet.pet.state).toBe('attention');
+      if (action === 'frog') expect(['frogMove', 'playWithFrog']).toContain(pet.pet.intent);
+      if (action === 'donut') expect(pet.restPlace).toBe('donut');
+    },
+  );
 
   it('uses the latest wake request without stacking actions', () => {
     const { pet, house } = setup();

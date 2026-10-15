@@ -2,10 +2,12 @@
 
 A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2D. A tiny Maltese wanders, sits, rests, and looks toward taps or clicks in its room.
 
-> Work in progress — current public milestone: V0.4b rest and sleep lifecycle.
+> Work in progress — current milestone: V0.4d.
 
 ## Version history
 
+- **V0.4d — Mobile Room Layout:** A shorter mobile wall, more reachable floor, a smaller donut, and a compact heading for the Jimmy photo popup.
+- **V0.4c — Sleepy & Happy Artwork:** Happy Maltese during frog play, sleepy Maltese in the donut, and matching sleepy occupied-house artwork.
 - **V0.4b — Rest & Sleep Lifecycle:** The Maltese stays in the donut or pet house, falls asleep after a quiet pause, and wakes for meaningful interactions.
 - **V0.4a — Pet House Visit:** A house-entry sequence with occupied-house artwork and a gentle wiggle.
 - **V0.3e — Frog Drag & Drop:** Move the frog around the room, into the house, or onto the donut.
@@ -22,15 +24,22 @@ A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2
 
 ## Work in progress
 
-The Maltese can settle into the donut or pet house, drift off, and wake when invited to play or explore again. The frog, rooms, and earlier interactions remain available.
+The Maltese can settle into the donut or pet house, drift off, and wake when invited to play or explore again. The mobile room now has more open walking space, while both room styles and earlier interactions remain available.
 
-<img src="docs/images/v0.4b-desktop-donut-sleeping.png" alt="Maltese resting in the pink donut in the Warm Tile Room" width="480">
-<img src="docs/images/v0.4b-desktop-house-sleeping.png" alt="Maltese peeking from the pet house while sleeping" width="480">
+<img src="docs/images/v0.4d-mobile-wood-comparison.jpg" alt="Cozy Wood Room mobile layout before and after V0.4d" width="600">
+<img src="docs/images/v0.4d-mobile-tile-comparison.jpg" alt="Warm Tile Room mobile layout before and after V0.4d" width="600">
+
+[Watch the short mobile walking-space clip](docs/videos/v0.4d-mobile-upper-floor-movement.gif).
 
 These are work-in-progress visual checkpoints, not final artwork. When a new milestone is captured, its older views move into the section below.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
+
+#### V0.4b — rest and sleep
+
+<img src="docs/images/v0.4b-desktop-donut-sleeping.png" alt="Maltese resting in the pink donut in the Warm Tile Room" width="480">
+<img src="docs/images/v0.4b-desktop-house-sleeping.png" alt="Maltese peeking from the pet house while sleeping" width="480">
 
 #### V0.4a — pet house visit
 

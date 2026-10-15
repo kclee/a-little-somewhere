@@ -1,9 +1,10 @@
 import type { PetModel, Point, WorldSize } from '../core/types';
-import { FLOOR_START_RATIO } from '../core/RoomGeometry';
+import { getFloorStartY } from '../core/RoomGeometry';
 import { DEFAULT_WALK_FPS, WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
   MALTESE_SPRITES,
   MalteseSpriteSet,
+  isFrontMaltesePose,
   selectMaltesePose,
   shouldMirrorMaltesePose,
   type MaltesePose,
@@ -18,7 +19,7 @@ import { drawExpressionEffect, type ExpressionFrame } from './ExpressionEffects'
 import { RearTailWagSpriteSet, REAR_TAIL_WAG_CYCLE_SECONDS, REAR_TAIL_WAG_START_SECONDS } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
 import { ScenePropAssets, type ScenePropImages } from './ScenePropAssets';
-import { drawFrogProp, drawSceneProps, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
+import { drawFrogProp, drawSceneProps, getOccupiedHouseImage, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
@@ -55,10 +56,13 @@ export class CanvasRenderer {
   public render(
     pet: PetModel, elapsed: number, expression?: ExpressionFrame | null,
     frog?: FrogVisual, house?: HouseVisual, expressionAnchor?: Point,
+    sleepingAtDonut = false,
   ): void {
     const propImages = this.scenePropAssets.getImages();
     this.drawRoom(elapsed, propImages, frog, house);
-    if (!house?.hidePet || (house.occupied && !propImages.petHouseOccupied)) this.drawPet(pet, elapsed);
+    if (!house?.hidePet || (house.occupied && !getOccupiedHouseImage(propImages, house))) {
+      this.drawPet(pet, elapsed, sleepingAtDonut);
+    }
     if (isFrogForeground(frog)) {
       drawFrogProp(this.context, { width: this.width, height: this.height }, propImages, frog);
     }
@@ -77,7 +81,7 @@ export class CanvasRenderer {
     const ctx = this.context;
     const w = this.width;
     const h = this.height;
-    const floorY = h * FLOOR_START_RATIO;
+    const floorY = getFloorStartY({ width: w, height: h });
 
     const wall = ctx.createLinearGradient(0, 0, 0, floorY);
     wall.addColorStop(0, this.scene.wallTopColor);
@@ -455,10 +459,10 @@ export class CanvasRenderer {
     }
   }
 
-  private drawPet(pet: PetModel, elapsed: number): void {
+  private drawPet(pet: PetModel, elapsed: number, sleepingAtDonut: boolean): void {
     if ((pet.state === 'walk' || pet.state === 'jog') && this.drawWalkCyclePet(pet)) return;
 
-    if (!this.drawSpritePet(pet, elapsed)) {
+    if (!this.drawSpritePet(pet, elapsed, sleepingAtDonut)) {
       this.drawPlaceholderPet(pet, elapsed);
     }
   }
@@ -500,8 +504,8 @@ export class CanvasRenderer {
     return true;
   }
 
-  private drawSpritePet(pet: PetModel, elapsed: number): boolean {
-    const pose = selectMaltesePose(pet);
+  private drawSpritePet(pet: PetModel, elapsed: number, sleepingAtDonut: boolean): boolean {
+    const selectedPose = selectMaltesePose(pet, sleepingAtDonut);
     const rearTailWagFrame = pet.state === 'sit' || pet.state === 'wallWag'
       ? this.rearTailWagSprites.getFrame(
         pet.state === 'wallWag'
@@ -509,6 +513,9 @@ export class CanvasRenderer {
           : pet.stateElapsed,
       )
       : null;
+    // A missing expression file falls back to the original front artwork.
+    const pose = isFrontMaltesePose(selectedPose) && !this.malteseSprites.get(selectedPose)
+      ? 'front' : selectedPose;
     const image = rearTailWagFrame?.image ?? this.malteseSprites.get(pose);
     if (!image) return false;
 

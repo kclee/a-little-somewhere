@@ -18,6 +18,8 @@ describe('pet shadow layout', () => {
       expect(front.radiusX).toBe(previous.radiusX);
       expect(front.radiusY).toBe(previous.radiusY);
       expect(getPetShadowLayout('idle', size, 'sideRight')).toEqual(previous);
+      expect(getPetShadowLayout('idle', size, 'frontHappy')).toEqual(front);
+      expect(getPetShadowLayout('idle', size, 'frontSleepy')).toEqual(front);
       expect(getPetShadowLayout('attention', size, 'attention').offsetY).toBe(2);
     }
   });
