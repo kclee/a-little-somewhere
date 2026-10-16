@@ -4,10 +4,13 @@ A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2
 
 | Current version | Status |
 | --- | --- |
-| **V0.4d.1** | Work in progress |
+| **V0.5b** | Work in progress |
 
 ## Version history
 
+- **V0.5b — Floor Sleep Lifecycle:** Occasional autonomous floor naps use lying-awake and lying-asleep artwork, then end naturally. Donut rest now progresses from a brief seated pause to lying awake and persistent sleep, with an 8% eligible floor-nap chance and a cooldown.
+- **V0.4f — Room Clock & Feeding Corner:** Austin and Taipei wall clocks show local time; small food and water bowls add noninteractive scenery.
+- **V0.4e — Interaction Hints:** Gentle hand hints introduce the dog and props, with an optional header replay button.
 - **V0.4d.1 — Autonomous Movement Coverage & Public Gallery:** The Maltese explores more of the open floor, and the approved Jimmy photos are available on GitHub Pages.
 - **V0.4d — Mobile Room Layout:** A shorter mobile wall, more reachable floor, a smaller donut, and a compact heading for the Jimmy photo popup.
 - **V0.4c — Sleepy & Happy Artwork:** Happy Maltese during frog play, sleepy Maltese in the donut, and matching sleepy occupied-house artwork.
@@ -27,19 +30,23 @@ A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2
 
 ## Work in progress
 
-The Maltese can settle into the donut or pet house, drift off, and wake when invited to play or explore again. It now explores the mobile room's open floor more naturally in both directions.
+The Maltese can nap briefly on the floor, or settle into the donut or pet house until invited to play or explore again. In the donut, it sits for a moment, lies down, then sleeps. The clocks and feeding bowls make both rooms feel a little more lived-in.
 
-<img src="docs/readme-media/v0.4d.1-mobile-wood.jpg" alt="Cozy Wood Room at the V0.4d.1 mobile checkpoint" width="320">
-<img src="docs/readme-media/v0.4d.1-mobile-tile.jpg" alt="Warm Tile Room at the V0.4d.1 mobile checkpoint" width="320">
+<img src="docs/readme-media/v0.5b-donut-sleep-mobile.png" alt="The Maltese lying asleep in the pink donut in the Warm Tile Room" width="320">
 
-[Watch 36 seconds of autonomous mobile exploration](docs/readme-media/v0.4d.1-mobile-autonomous-coverage.gif).
-
-These are work-in-progress visual checkpoints, not final artwork. When a new milestone is captured, its older views move into the section below.
+This is a work-in-progress visual checkpoint, not final artwork. The short donut-transition review clip stays local in the Git-ignored `docs/videos` folder rather than being published with the README.
 
 Review captures stay locally in Git-ignored `docs/images` and `docs/videos`. Only selected copies in `docs/readme-media` are tracked for this README.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
+
+#### V0.4d.1 — mobile exploration
+
+<img src="docs/readme-media/v0.4d.1-mobile-wood.jpg" alt="Cozy Wood Room at the V0.4d.1 mobile checkpoint" width="320">
+<img src="docs/readme-media/v0.4d.1-mobile-tile.jpg" alt="Warm Tile Room at the V0.4d.1 mobile checkpoint" width="320">
+
+[Watch 36 seconds of autonomous mobile exploration](docs/readme-media/v0.4d.1-mobile-autonomous-coverage.gif).
 
 #### V0.4d — mobile room layout
 
