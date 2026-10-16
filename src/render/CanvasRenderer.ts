@@ -2,6 +2,7 @@ import type { PetModel, Point, WorldSize } from '../core/types';
 import type { HintFrame } from '../interaction/InteractionHintController';
 import type { DonutPose } from '../simulation/PetSimulation';
 import { getFloorStartY } from '../core/RoomGeometry';
+import { CameraGreetingArt, drawCameraGreeting, drawCameraGreetingHearts } from './CameraGreeting';
 import { DEFAULT_WALK_FPS, WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
   MALTESE_SPRITES,
@@ -33,6 +34,7 @@ export class CanvasRenderer {
   private readonly rearTailWagSprites = new RearTailWagSpriteSet();
   private readonly scenePropAssets = new ScenePropAssets();
   private readonly clockTime = new RoomClockTime();
+  private readonly cameraGreetingArt = new CameraGreetingArt();
   private width = 1;
   private height = 1;
 
@@ -65,10 +67,18 @@ export class CanvasRenderer {
     donutPose: DonutPose | null = null,
     hints: readonly HintFrame[] = [],
     holdPetMotion = false,
+    reducedMotion = false,
+    cameraHeartCount = 0,
   ): void {
     const propImages = this.scenePropAssets.getImages();
+    const cameraImage = this.cameraGreetingArt.getImage();
+    // Reduced motion keeps the ordinary dog visible through the two burst
+    // frames, then swaps directly to the still close-up.
+    const cameraShowing = cameraImage !== null
+      && (pet.state === 'cameraPop' || pet.state === 'cameraCloseup' || pet.state === 'cameraPopOut')
+      && (!reducedMotion || pet.state === 'cameraCloseup');
     this.drawRoom(elapsed, propImages, frog, house);
-    if (!house?.hidePet || (house.occupied && !getOccupiedHouseImage(propImages, house))) {
+    if (!cameraShowing && (!house?.hidePet || (house.occupied && !getOccupiedHouseImage(propImages, house)))) {
       this.drawPet(pet, holdPetMotion ? 0 : elapsed, donutPose);
     }
     if (donutPose === 'lyingAwake' || donutPose === 'lyingAsleep') {
@@ -89,6 +99,13 @@ export class CanvasRenderer {
     if (hints.length) {
       const world = { width: this.width, height: this.height };
       drawInteractionHands(this.context, world, pet, frog ?? getScenePropLayout(world).frog, hints);
+    }
+    if (cameraShowing && cameraImage) {
+      drawCameraGreeting(this.context, { width: this.width, height: this.height }, pet, cameraImage, reducedMotion);
+    }
+    if (pet.state === 'cameraHappyBefore') {
+      const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
+      drawCameraGreetingHearts(this.context, pet, spriteSize, cameraHeartCount, reducedMotion);
     }
   }
 
@@ -545,8 +562,9 @@ export class CanvasRenderer {
     const playing = pet.intent === 'playWithFrog';
     const lying = pose === 'lyingAwake' || pose === 'lyingAsleep';
     const playPhase = pet.stateElapsed * Math.PI * 2 * 1.55;
+    const happyPause = pet.state === 'cameraHappyBefore' || pet.state === 'cameraHappyAfter';
     const bob = playing ? -Math.abs(Math.sin(playPhase)) * 2.2
-      : walking ? Math.abs(stepPhase) * -2.4 : lying ? 0 : Math.sin(elapsed * 2.1) * 0.65;
+      : walking ? Math.abs(stepPhase) * -2.4 : lying || happyPause ? 0 : Math.sin(elapsed * 2.1) * 0.65;
     const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
     const sourceScale = spriteSize / definition.canvasSize;
     const mirrorX = shouldMirrorMaltesePose(pose, pet.facing) ? -1 : 1;

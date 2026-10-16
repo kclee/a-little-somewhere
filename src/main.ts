@@ -15,6 +15,8 @@ import { PetStatus } from './ui/PetStatus';
 import { JimmyPhotoPopup } from './ui/JimmyPhotoPopup';
 import { HintDebugPanel } from './ui/HintDebugPanel';
 import { FloorSleepDebugPanel } from './ui/FloorSleepDebugPanel';
+import { CameraGreetingDebugPanel } from './ui/CameraGreetingDebugPanel';
+import { isPointOnCameraGreeting } from './render/CameraGreeting';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#room');
 const sceneControls = document.querySelector<HTMLElement>('[data-scene-controls]');
@@ -35,6 +37,7 @@ const photoDialog = document.querySelector<HTMLDialogElement>('[data-photo-dialo
 const sceneMenu = document.querySelector<HTMLElement>('[data-scene-menu]');
 const scenePicker = new ScenePicker(sceneControls, initialScene.id, (sceneId) => {
   hints.noteInteraction();
+  simulation.cancelCameraGreeting();
   renderer.setScene(ROOM_SCENES[sceneId]);
   const url = new URL(window.location.href);
   url.searchParams.set('room', sceneId);
@@ -46,6 +49,12 @@ const hintDebug = new URLSearchParams(window.location.search).get('hintDebug') =
 const floorSleepDebug = import.meta.env.DEV
   && new URLSearchParams(window.location.search).get('floorSleepDebug') === '1'
   ? new FloorSleepDebugPanel((pose) => simulation.previewFloorSleep(pose)) : null;
+const cameraGreetingDebug = import.meta.env.DEV
+  && new URLSearchParams(window.location.search).get('cameraGreetingDebug') === '1'
+  ? new CameraGreetingDebugPanel((mode) => {
+    hints.noteInteraction();
+    simulation.previewCameraGreeting(mode);
+  }) : null;
 
 const updateReplayAvailability = (): void => {
   replayButton.disabled = reducedMotion.matches;
@@ -60,11 +69,15 @@ replayButton.addEventListener('click', replayHints);
 const noteUserActivity = (event: Event): void => {
   if (hintDebug?.contains(event.target)) return;
   if (floorSleepDebug?.contains(event.target)) return;
+  if (cameraGreetingDebug?.contains(event.target)) return;
   if (event.target instanceof Node && replayButton.contains(event.target)) return;
   hints.noteInteraction();
 };
 const noteVisibilityChange = (): void => {
-  if (document.visibilityState !== 'visible') hints.noteInteraction();
+  if (document.visibilityState !== 'visible') {
+    hints.noteInteraction();
+    simulation.cancelCameraGreeting();
+  }
 };
 document.addEventListener('pointerdown', noteUserActivity, true);
 document.addEventListener('keydown', noteUserActivity, true);
@@ -83,19 +96,24 @@ resize();
 
 const targetAt = (point: Point) => {
   const frog = frogPlay.getVisual(simulation.world);
-  return getInteractionTarget(
+  const target = getInteractionTarget(
     point, simulation.pet, simulation.world, { x: frog.x, y: frog.baseline },
     !simulation.isRestingAt('house'),
   );
+  if ((target === 'floor' || target === 'wall') && simulation.pet.state === 'cameraCloseup'
+    && isPointOnCameraGreeting(point, simulation.world)) return 'pet';
+  return target;
 };
 
 const input = new PointerInput(canvas, {
-  isFrog: (point) => !simulation.isHouseSequenceActive() && targetAt(point) === 'frog',
-  onFrogTap: () => simulation.playWithFrog(
-    frogPlay.getApproachPoint(simulation.world, simulation.pet.position.x),
-  ),
+  isFrog: (point) => !simulation.isHouseSequenceActive()
+    && !simulation.isCameraGreetingActive() && targetAt(point) === 'frog',
+  onFrogTap: () => {
+    if (simulation.isCameraGreetingActive()) return;
+    simulation.playWithFrog(frogPlay.getApproachPoint(simulation.world, simulation.pet.position.x));
+  },
   onTap: (point) => {
-    if (simulation.isHouseSequenceActive()) return;
+    if (simulation.isHouseSequenceActive() || simulation.isCameraGreetingActive()) return;
     const target = targetAt(point);
     if (target === 'pet') simulation.interact(point);
     else if (target === 'frog') simulation.playWithFrog(
@@ -113,6 +131,7 @@ const input = new PointerInput(canvas, {
     // Static props reserve their hit areas for later interactions.
   },
   onDragStart: (point) => {
+    if (simulation.isCameraGreetingActive()) return;
     frogPlay.beginDrag(point, simulation.world);
     simulation.beginFrogDrag();
   },
@@ -184,6 +203,8 @@ const frame = (now: number): void => {
     simulation.donutPose,
     hintFrames,
     holdInitialPose,
+    reducedMotion.matches,
+    simulation.cameraGreetingHeartCount,
   );
   requestAnimationFrame(frame);
 };
@@ -191,11 +212,13 @@ const frame = (now: number): void => {
 requestAnimationFrame(frame);
 
 window.addEventListener('pagehide', () => {
+  simulation.cancelCameraGreeting();
   input.destroy();
   scenePicker.destroy();
   jimmyPhotoPopup.destroy();
   hintDebug?.destroy();
   floorSleepDebug?.destroy();
+  cameraGreetingDebug?.destroy();
   replayButton.removeEventListener('click', replayHints);
   reducedMotion.removeEventListener('change', updateReplayAvailability);
   document.removeEventListener('pointerdown', noteUserActivity, true);

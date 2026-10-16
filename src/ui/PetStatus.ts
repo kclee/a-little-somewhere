@@ -11,6 +11,11 @@ const MALTESE_PHRASES: Record<PetState, string> = {
   floorRest: '躺一下～',
   floorSleep: '呼呼睡著了～',
   floorWake: '睡飽了～',
+  cameraHappyBefore: '好開心見到你～',
+  cameraPop: '來打招呼！',
+  cameraCloseup: '嗨，你好呀！',
+  cameraPopOut: '下次見～',
+  cameraHappyAfter: '再玩一下～',
 };
 
 export function getPetStatus(pet: Pick<PetModel, 'state' | 'intent'>, restPhase: RestPhase = 'none'): string {
@@ -25,6 +30,8 @@ export function getPetStatus(pet: Pick<PetModel, 'state' | 'intent'>, restPhase:
   if (pet.intent === 'insideHouse') return '躲在小屋裡';
   if (pet.intent === 'frogMove') return '去找青蛙囉！';
   if (pet.intent === 'playWithFrog') return '和青蛙玩耍中～';
+  if (pet.intent === 'cameraGreeting') return pet.state === 'walk' || pet.state === 'jog'
+    ? '跑來找你～' : MALTESE_PHRASES[pet.state];
   return MALTESE_PHRASES[pet.state];
 }
 

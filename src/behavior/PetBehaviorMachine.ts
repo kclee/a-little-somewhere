@@ -21,7 +21,38 @@ export const FLOOR_SLEEP_CONFIG = {
   wakeSeconds: 1,
   cooldownSeconds: 45,
 } as const;
-type ArrivalAction = 'attention' | 'wallWag' | 'donutRest' | 'frogPlay' | 'houseVisit';
+export const CAMERA_GREETING_CONFIG = {
+  firstMinSeconds: 120,
+  firstRangeSeconds: 120,
+  subsequentMinSeconds: 300,
+  subsequentRangeSeconds: 180,
+  heartStartSeconds: 0.06,
+  heartDurationSeconds: 0.8,
+  heartGapSeconds: 0.3,
+  happyBeforeTailSeconds: 0.1,
+  popSeconds: 0.16,
+  closeupSeconds: 2.6,
+  popOutSeconds: 0.16,
+  happyAfterSeconds: 0.68,
+} as const;
+
+export function getCameraHappyBeforeDuration(heartCount: number): number {
+  return CAMERA_GREETING_CONFIG.heartStartSeconds
+    + (Math.max(1, heartCount) - 1) * CAMERA_GREETING_CONFIG.heartGapSeconds
+    + CAMERA_GREETING_CONFIG.heartDurationSeconds
+    + CAMERA_GREETING_CONFIG.happyBeforeTailSeconds;
+}
+type ArrivalAction = 'attention' | 'wallWag' | 'donutRest' | 'frogPlay' | 'houseVisit' | 'cameraGreeting';
+
+export function isCameraGreetingState(state: PetState): boolean {
+  return state === 'cameraHappyBefore' || state === 'cameraPop'
+    || state === 'cameraCloseup' || state === 'cameraPopOut' || state === 'cameraHappyAfter';
+}
+
+export function getCameraGreetingDestination(world: WorldSize): Point {
+  const bounds = getMovementBounds(world);
+  return { x: (bounds.minX + bounds.maxX) / 2, y: bounds.maxY - 12 };
+}
 
 export function isFloorSleepState(state: PetState): boolean {
   return state === 'floorRest' || state === 'floorSleep' || state === 'floorWake';
@@ -56,11 +87,20 @@ export class PetBehaviorMachine {
   private walkTarget: Point | null = null;
   private arrivalAction: ArrivalAction | null = null;
   private floorSleepCooldown = 0;
+  private cameraScheduleStarted = false;
+  private cameraSecondsUntilDue: number | null = null;
+  private cameraGreetingDue = false;
+  private cameraGreetingOrigin: 'automatic' | 'preview' | null = null;
+  private cameraHeartCount = 0;
 
-  public constructor(private readonly random: RandomSource = Math.random) {}
+  public constructor(
+    private readonly random: RandomSource = Math.random,
+    private readonly cameraRandom: RandomSource = Math.random,
+  ) {}
 
   public update(deltaSeconds: number, pet: PetModel, world: WorldSize): void {
     this.floorSleepCooldown = Math.max(0, this.floorSleepCooldown - deltaSeconds);
+    this.updateCameraSchedule(deltaSeconds, pet);
     pet.stateElapsed += deltaSeconds;
     if (this.movementTarget) {
       // A resize may have changed the valid floor area mid-dash.
@@ -75,12 +115,16 @@ export class PetBehaviorMachine {
         this.arrivalAction = null;
         pet.intent = arrivalAction === 'donutRest' ? 'restAtDonut'
           : arrivalAction === 'frogPlay' ? 'playWithFrog'
-            : arrivalAction === 'houseVisit' ? 'insideHouse' : 'autonomous';
+            : arrivalAction === 'houseVisit' ? 'insideHouse'
+              : arrivalAction === 'cameraGreeting' ? 'cameraGreeting' : 'autonomous';
         if (arrivalAction === 'attention') this.enterState('attention', ARRIVAL_ATTENTION_SECONDS, pet);
         else if (arrivalAction === 'wallWag') this.enterState('wallWag', WALL_WAG_SECONDS, pet);
         else if (arrivalAction === 'donutRest') this.enterState('idle', Number.POSITIVE_INFINITY, pet);
         else if (arrivalAction === 'frogPlay') this.enterState('idle', FROG_PLAY_SECONDS, pet);
         else if (arrivalAction === 'houseVisit') this.enterState('idle', Number.POSITIVE_INFINITY, pet);
+        else if (arrivalAction === 'cameraGreeting') {
+          this.enterState('cameraHappyBefore', getCameraHappyBeforeDuration(this.cameraHeartCount), pet);
+        }
         else this.chooseAutonomousState(pet, world);
       } else {
         const speed = pet.state === 'jog' ? JOG_SPEED : WALK_SPEED;
@@ -98,6 +142,11 @@ export class PetBehaviorMachine {
       pet.velocityY = 0;
       return;
     }
+    if (pet.intent === 'frogDrag') {
+      pet.velocityX = 0;
+      pet.velocityY = 0;
+      return;
+    }
     if (pet.intent === 'playWithFrog') {
       this.stateTimeRemaining -= deltaSeconds;
       pet.velocityX = 0;
@@ -109,6 +158,24 @@ export class PetBehaviorMachine {
       return;
     }
     this.stateTimeRemaining -= deltaSeconds;
+
+    if (isCameraGreetingState(pet.state)) {
+      pet.velocityX = 0;
+      pet.velocityY = 0;
+      if (this.stateTimeRemaining <= 0) {
+        if (pet.state === 'cameraHappyBefore') this.enterState('cameraPop', CAMERA_GREETING_CONFIG.popSeconds, pet);
+        else if (pet.state === 'cameraPop') this.enterState('cameraCloseup', CAMERA_GREETING_CONFIG.closeupSeconds, pet);
+        else if (pet.state === 'cameraCloseup') this.enterState('cameraPopOut', CAMERA_GREETING_CONFIG.popOutSeconds, pet);
+        else if (pet.state === 'cameraPopOut') {
+          this.enterState('cameraHappyAfter', CAMERA_GREETING_CONFIG.happyAfterSeconds, pet);
+        } else {
+          this.finishCameraGreeting();
+          pet.intent = 'autonomous';
+          this.enterState('idle', 1.2, pet);
+        }
+      }
+      return;
+    }
 
     if (isFloorSleepState(pet.state)) {
       pet.velocityX = 0;
@@ -230,10 +297,87 @@ export class PetBehaviorMachine {
     }
   }
 
+  public previewCameraGreeting(mode: 'run' | 'closeup' | 'resume', pet: PetModel, world: WorldSize): void {
+    if (mode === 'resume') {
+      this.cancelCameraGreeting(pet);
+      return;
+    }
+    this.cancelCameraGreeting(pet);
+    // If a scheduled greeting is already due, a debug preview satisfies it
+    // instead of producing a second greeting immediately afterward.
+    this.startCameraGreeting(pet, world, this.cameraGreetingDue ? 'automatic' : 'preview', mode === 'closeup');
+  }
+
+  public cancelCameraGreeting(pet: PetModel): void {
+    if (!this.isCameraGreetingActive(pet)) return;
+    this.finishCameraGreeting();
+    this.cancelMovement(pet);
+    this.enterState('idle', 1.2, pet);
+  }
+
+  public isCameraGreetingActive(pet: PetModel): boolean {
+    return pet.intent === 'cameraGreeting' || isCameraGreetingState(pet.state);
+  }
+
+  public get cameraHearts(): number {
+    return this.cameraHeartCount;
+  }
+
+  public get cameraScheduleRemaining(): number | null {
+    return this.cameraSecondsUntilDue;
+  }
+
+  public get cameraScheduleIsDue(): boolean {
+    return this.cameraGreetingDue;
+  }
+
+  private startCameraGreeting(
+    pet: PetModel, world: WorldSize,
+    origin: 'automatic' | 'preview', showCloseup: boolean,
+  ): void {
+    this.cancelMovement(pet);
+    this.cameraGreetingOrigin = origin;
+    this.cameraHeartCount = 1 + Math.min(2, Math.floor(Math.max(0, this.cameraRandom()) * 3));
+    if (origin === 'automatic') this.cameraGreetingDue = false;
+    if (showCloseup) {
+      pet.intent = 'cameraGreeting';
+      this.enterState('cameraCloseup', Number.POSITIVE_INFINITY, pet);
+    } else {
+      this.startMovement(getCameraGreetingDestination(world), pet, 'cameraGreeting', 'cameraGreeting');
+    }
+  }
+
+  private finishCameraGreeting(): void {
+    if (this.cameraGreetingOrigin === 'automatic') {
+      this.cameraSecondsUntilDue = this.sampleCameraInterval(false);
+      this.cameraGreetingDue = false;
+    }
+    this.cameraGreetingOrigin = null;
+    this.cameraHeartCount = 0;
+  }
+
+  private updateCameraSchedule(deltaSeconds: number, pet: PetModel): void {
+    if (!this.cameraScheduleStarted) {
+      if (pet.intent !== 'autonomous' || pet.state !== 'idle') return;
+      this.cameraScheduleStarted = true;
+      this.cameraSecondsUntilDue = this.sampleCameraInterval(true);
+    }
+    // Manual previews do not consume or reroll the automatic schedule.
+    if (this.cameraGreetingOrigin !== null || this.cameraGreetingDue) return;
+    this.cameraSecondsUntilDue = Math.max(0, (this.cameraSecondsUntilDue ?? 0) - deltaSeconds);
+    this.cameraGreetingDue = this.cameraSecondsUntilDue === 0;
+  }
+
+  private sampleCameraInterval(first: boolean): number {
+    const min = first ? CAMERA_GREETING_CONFIG.firstMinSeconds : CAMERA_GREETING_CONFIG.subsequentMinSeconds;
+    const range = first ? CAMERA_GREETING_CONFIG.firstRangeSeconds : CAMERA_GREETING_CONFIG.subsequentRangeSeconds;
+    return min + Math.min(1, Math.max(0, this.cameraRandom())) * range;
+  }
+
   private startMovement(
     point: Point,
     pet: PetModel,
-    intent: 'moveTo' | 'wallMove' | 'donutMove' | 'frogMove' | 'houseMove',
+    intent: 'moveTo' | 'wallMove' | 'donutMove' | 'frogMove' | 'houseMove' | 'cameraGreeting',
     arrivalAction: ArrivalAction,
   ): void {
     this.walkTarget = null;
@@ -253,6 +397,10 @@ export class PetBehaviorMachine {
   }
 
   private chooseAutonomousState(pet: PetModel, world: WorldSize): void {
+    if (pet.intent === 'autonomous' && pet.state === 'idle' && this.cameraGreetingDue) {
+      this.startCameraGreeting(pet, world, 'automatic', false);
+      return;
+    }
     const roll = this.random();
     // A rare nap can begin only after a quiet idle period. The existing Walk
     // and Dash roll ranges are unchanged; the nap replaces only a little Sit.

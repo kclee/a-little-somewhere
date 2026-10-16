@@ -422,6 +422,17 @@ canvas:focus-visible {
   grid-column: 1 / -1;
 }
 
+.camera-greeting-debug {
+  left: 12px;
+  right: auto;
+  top: 76px;
+  width: min(230px, calc(100vw - 24px));
+}
+
+.camera-greeting-debug .hint-debug-controls button:last-child {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 521px) and (max-height: 850px) {
   .jimmy-photo-scroll img {
     width: min(100%, 200px);

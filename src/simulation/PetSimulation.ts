@@ -1,4 +1,4 @@
-import { PetBehaviorMachine } from '../behavior/PetBehaviorMachine';
+import { PetBehaviorMachine, isFloorSleepState } from '../behavior/PetBehaviorMachine';
 import { clampFloorPoint, DEFAULT_GROUND_RATIO } from '../core/RoomGeometry';
 import type { PetModel, Point, WorldSize } from '../core/types';
 
@@ -67,7 +67,10 @@ export class PetSimulation {
         if (action) this.executeAction(action);
       }
     }
-    if (this.draggingFrog && this.restPhase === 'none') return;
+    if (this.draggingFrog && this.restPhase === 'none') {
+      this.behavior.update(safeDelta, this.pet, this.world);
+      return;
+    }
     this.behavior.update(safeDelta, this.pet, this.world);
     this.pet.position = clampFloorPoint({
       x: this.pet.position.x + this.pet.velocityX * safeDelta,
@@ -112,7 +115,7 @@ export class PetSimulation {
   }
 
   public beginFrogDrag(): void {
-    if (this.isHouseSequenceActive()) return;
+    if (this.isHouseSequenceActive() || this.isCameraGreetingActive()) return;
     this.draggingFrog = true;
     if (!this.isResting() && this.restPhase !== 'waking') {
       this.clearRest();
@@ -156,11 +159,29 @@ export class PetSimulation {
   }
 
   public previewFloorSleep(state: 'awake' | 'asleep' | 'cycle' | 'off'): void {
-    if (this.restPhase !== 'none' || this.draggingFrog) return;
+    if (this.restPhase !== 'none' || this.draggingFrog || this.isCameraGreetingActive()) return;
     this.behavior.previewFloorSleep(state, this.pet);
   }
 
+  public previewCameraGreeting(mode: 'run' | 'closeup' | 'resume'): void {
+    if (mode !== 'resume' && (this.restPhase !== 'none' || this.draggingFrog || isFloorSleepState(this.pet.state))) return;
+    this.behavior.previewCameraGreeting(mode, this.pet, this.world);
+  }
+
+  public isCameraGreetingActive(): boolean {
+    return this.behavior.isCameraGreetingActive(this.pet);
+  }
+
+  public cancelCameraGreeting(): void {
+    this.behavior.cancelCameraGreeting(this.pet);
+  }
+
+  public get cameraGreetingHeartCount(): number {
+    return this.behavior.cameraHearts;
+  }
+
   private performOrWake(action: PetAction): void {
+    if (this.isCameraGreetingActive()) return;
     if (this.isHouseSequenceActive()) return;
     if (this.isResting()) {
       this.pendingAction = action;

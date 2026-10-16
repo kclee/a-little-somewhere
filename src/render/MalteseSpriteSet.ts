@@ -100,6 +100,7 @@ export function selectMaltesePose(
   if (pet.state === 'walk' || pet.state === 'jog') return pet.facing === -1 ? 'sideLeft' : 'sideRight';
   if (pet.state === 'sit' || pet.state === 'wallWag') return 'back';
   if (pet.state === 'attention') return 'attention';
+  if (pet.state === 'cameraHappyBefore' || pet.state === 'cameraHappyAfter') return 'frontHappy';
   if (donutPose === 'lyingAwake' || donutPose === 'lyingAsleep') return donutPose;
   if (pet.intent === 'playWithFrog') return 'frontHappy';
   return 'front';

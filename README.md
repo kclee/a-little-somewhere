@@ -4,10 +4,12 @@ A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2
 
 | Current version | Status |
 | --- | --- |
-| **V0.5b** | Work in progress |
+| **V0.5c.2** | Work in progress |
 
 ## Version history
 
+- **V0.5c.2 — Camera Greeting Final Polish:** A rare foreground greeting now includes happy pauses, 1–3 floating hearts, protected playback, and time-based scheduling that waits until the Maltese is free.
+- **V0.5c — Camera Greeting:** The Maltese occasionally approaches the camera for a quick, playful close-up.
 - **V0.5b — Floor Sleep Lifecycle:** Occasional autonomous floor naps use lying-awake and lying-asleep artwork, then end naturally. Donut rest now progresses from a brief seated pause to lying awake and persistent sleep, with an 8% eligible floor-nap chance and a cooldown.
 - **V0.4f — Room Clock & Feeding Corner:** Austin and Taipei wall clocks show local time; small food and water bowls add noninteractive scenery.
 - **V0.4e — Interaction Hints:** Gentle hand hints introduce the dog and props, with an optional header replay button.
@@ -30,16 +32,20 @@ A cozy, Codex-assisted virtual-pet experiment built with TypeScript and Canvas 2
 
 ## Work in progress
 
-The Maltese can nap briefly on the floor, or settle into the donut or pet house until invited to play or explore again. In the donut, it sits for a moment, lies down, then sleeps. The clocks and feeding bowls make both rooms feel a little more lived-in.
+The Maltese can nap on the floor, settle into the donut or pet house, and occasionally offer a happy camera greeting with floating hearts. The clocks and feeding bowls make both rooms feel a little more lived-in.
 
-<img src="docs/readme-media/v0.5b-donut-sleep-mobile.png" alt="The Maltese lying asleep in the pink donut in the Warm Tile Room" width="320">
+<img src="docs/readme-media/v0.5c.2-camera-hearts-mobile.png" alt="The Maltese greeting the camera with floating hearts in the Warm Tile Room" width="320">
 
-This is a work-in-progress visual checkpoint, not final artwork. The short donut-transition review clip stays local in the Git-ignored `docs/videos` folder rather than being published with the README.
+This is a work-in-progress visual checkpoint, not final artwork. Review recordings stay local in the Git-ignored `docs/videos` folder rather than being published with the README.
 
 Review captures stay locally in Git-ignored `docs/images` and `docs/videos`. Only selected copies in `docs/readme-media` are tracked for this README.
 
 <details>
 <summary>Earlier visual checkpoints</summary>
+
+#### V0.5b — donut sleep
+
+<img src="docs/readme-media/v0.5b-donut-sleep-mobile.png" alt="The Maltese lying asleep in the pink donut in the Warm Tile Room" width="320">
 
 #### V0.4d.1 — mobile exploration
 
