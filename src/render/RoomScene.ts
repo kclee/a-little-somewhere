@@ -1,6 +1,7 @@
 export type RoomSceneId = 'wood' | 'creamTile';
 export type WindowViewStyle = 'hills' | 'taiwanCity';
 export type WallDecorStyle = 'booksAndPlant' | 'taiwanHome';
+export type RoomTimeZone = 'America/Chicago' | 'Asia/Taipei';
 
 interface WoodFloorStyle {
   kind: 'wood';
@@ -25,6 +26,7 @@ export interface RoomSceneConfig {
   baseboardColor: string;
   windowView: WindowViewStyle;
   wallDecor: WallDecorStyle;
+  clockTimeZone: RoomTimeZone;
   floor: WoodFloorStyle | CreamTileFloorStyle;
 }
 
@@ -37,6 +39,7 @@ export const ROOM_SCENES: Record<RoomSceneId, RoomSceneConfig> = {
     baseboardColor: '#b9856c',
     windowView: 'hills',
     wallDecor: 'booksAndPlant',
+    clockTimeZone: 'America/Chicago',
     floor: {
       kind: 'wood',
       topColor: '#c99577',
@@ -52,6 +55,7 @@ export const ROOM_SCENES: Record<RoomSceneId, RoomSceneConfig> = {
     baseboardColor: '#b39b8b',
     windowView: 'taiwanCity',
     wallDecor: 'taiwanHome',
+    clockTimeZone: 'Asia/Taipei',
     floor: {
       kind: 'creamTile',
       topColor: '#f0e5ce',

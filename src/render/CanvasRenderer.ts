@@ -20,6 +20,7 @@ import { drawInteractionHands } from './InteractionHintVisual';
 import { drawExpressionEffect, type ExpressionFrame } from './ExpressionEffects';
 import { RearTailWagSpriteSet, REAR_TAIL_WAG_CYCLE_SECONDS, REAR_TAIL_WAG_START_SECONDS } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
+import { RoomClockTime, drawFeedingCorner, drawWallClock } from './RoomScenery';
 import { ScenePropAssets, type ScenePropImages } from './ScenePropAssets';
 import { drawFrogProp, drawSceneProps, getOccupiedHouseImage, getScenePropLayout, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
 
@@ -29,6 +30,7 @@ export class CanvasRenderer {
   private readonly malteseWalkCycle = new MalteseWalkCycle();
   private readonly rearTailWagSprites = new RearTailWagSpriteSet();
   private readonly scenePropAssets = new ScenePropAssets();
+  private readonly clockTime = new RoomClockTime();
   private width = 1;
   private height = 1;
 
@@ -101,7 +103,9 @@ export class CanvasRenderer {
 
     this.drawWindow(w * 0.08, h * 0.1, Math.min(w * 0.38, 210), Math.min(h * 0.28, 170), elapsed);
     this.drawWallDecor(w, h);
+    drawWallClock(ctx, { width: w, height: h }, this.clockTime.read(this.scene.clockTimeZone));
     drawSceneProps(ctx, { width: w, height: h }, propImages, frog, !isFrogForeground(frog), house);
+    drawFeedingCorner(ctx, { width: w, height: h });
 
     ctx.fillStyle = this.scene.baseboardColor;
     ctx.fillRect(0, floorY - 8, w, 10);
