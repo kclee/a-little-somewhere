@@ -2,6 +2,7 @@ import type { Point, WorldSize } from './types';
 
 export const FLOOR_START_RATIO = 0.58;
 export const DEFAULT_GROUND_RATIO = 0.78;
+export const FLOOR_FEET_MARGIN = 12;
 
 export function isMobilePortrait(world: WorldSize): boolean {
   return world.width < 560 && world.height > world.width;
@@ -17,17 +18,16 @@ export function getMovementBounds(world: WorldSize) {
   // mobile size. Give it a little edge clearance without changing wide rooms.
   const edgeInset = isMobilePortrait(world) ? 80 : 58;
   const minX = Math.min(edgeInset, world.width / 2);
-  // Keep the dog's body comfortably in the room while opening a real upper
-  // walking lane on mobile (not merely drawing more floor behind it).
-  const floorInset = isMobilePortrait(world)
-    ? world.height * 0.15
-    : Math.min(165, world.height * 0.2);
-  const minY = getFloorStartY(world) + floorInset;
+  // PetModel.position is the sprite's feet anchor, not its top edge. Only
+  // ground contact needs to stay below the baseboard; the body may overlap
+  // the wall visually when the dog walks along the back of the floor.
+  const maxY = Math.max(0, world.height - 42);
+  const minY = Math.min(maxY, getFloorStartY(world) + FLOOR_FEET_MARGIN);
   return {
     minX,
     maxX: Math.max(minX, world.width - edgeInset),
-    minY: Math.min(minY, Math.max(0, world.height - 42)),
-    maxY: Math.max(minY, world.height - 42),
+    minY,
+    maxY,
   };
 }
 

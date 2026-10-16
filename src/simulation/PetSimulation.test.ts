@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PetBehaviorMachine } from '../behavior/PetBehaviorMachine';
-import { FLOOR_START_RATIO, getFloorStartY, getMovementBounds } from '../core/RoomGeometry';
+import { FLOOR_FEET_MARGIN, getFloorStartY, getMovementBounds } from '../core/RoomGeometry';
 import { PetSimulation } from './PetSimulation';
 
 describe('PetSimulation', () => {
@@ -59,16 +59,35 @@ describe('PetSimulation', () => {
     const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
     simulation.resize(366, 767);
     const upperFloor = getMovementBounds(simulation.world).minY;
-    expect(upperFloor).toBeLessThan(
-      simulation.world.height * FLOOR_START_RATIO + Math.min(165, simulation.world.height * 0.2),
-    );
-    expect(upperFloor).toBeGreaterThan(getFloorStartY(simulation.world));
+    expect(upperFloor).toBeCloseTo(getFloorStartY(simulation.world) + FLOOR_FEET_MARGIN);
     simulation.moveTo({ x: 110, y: upperFloor });
     for (let frame = 0; frame < 180 && simulation.pet.intent === 'moveTo'; frame += 1) {
       simulation.update(0.1);
     }
     expect(simulation.pet.position.y).toBeCloseTo(upperFloor);
     expect(simulation.pet.state).toBe('attention');
+  });
+
+  it('lands its feet at clicked upper, middle, and lower floor points on mobile and desktop', () => {
+    for (const world of [{ width: 390, height: 767 }, { width: 1200, height: 800 }]) {
+      const bounds = getMovementBounds(world);
+      const floorY = getFloorStartY(world);
+      const x = world.width * 0.45;
+      const clickYs = [floorY + FLOOR_FEET_MARGIN, floorY + 65,
+        (bounds.minY + bounds.maxY) / 2, bounds.maxY - 8];
+      for (const y of clickYs) {
+        const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
+        simulation.resize(world.width, world.height);
+        simulation.moveTo({ x, y });
+        for (let frame = 0; frame < 300 && simulation.pet.intent === 'moveTo'; frame += 1) {
+          simulation.update(0.1);
+        }
+        expect(simulation.pet.intent).toBe('autonomous');
+        expect(simulation.pet.state).toBe('attention');
+        expect(simulation.pet.position.x).toBeCloseTo(x);
+        expect(simulation.pet.position.y).toBeCloseTo(y);
+      }
+    }
   });
 
   it('autonomously travels into the upper mobile floor without a directed click', () => {
@@ -221,15 +240,16 @@ describe('PetSimulation', () => {
     const simulation = new PetSimulation(new PetBehaviorMachine(() => values.shift() ?? 0));
     simulation.resize(1000, 800);
     for (let frame = 0; frame < 14; frame += 1) simulation.update(0.1);
-    const startX = simulation.pet.position.x;
+    const start = { ...simulation.pet.position };
     expect(simulation.pet.state).toBe('jog');
     expect(simulation.pet.intent).toBe('autonomous');
     for (let frame = 0; frame < 12; frame += 1) simulation.update(0.1);
     expect(simulation.pet.state).toBe('jog');
-    expect(simulation.pet.position.x - startX).toBeCloseTo(288);
+    expect(Math.hypot(simulation.pet.position.x - start.x, simulation.pet.position.y - start.y))
+      .toBeCloseTo(288);
     for (let frame = 0; frame < 8; frame += 1) simulation.update(0.1);
     expect(simulation.pet.state).toBe('idle');
-    expect(simulation.pet.position.x - startX).toBeCloseTo(420);
+    expect(simulation.pet.position.x - start.x).toBeCloseTo(420);
   });
 
   it('keeps a long click-directed dash active for the entire unobstructed route', () => {

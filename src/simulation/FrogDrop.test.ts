@@ -29,7 +29,7 @@ describe('frog drop regions', () => {
       const drop = resolveFrogDrop({ x: world.width * 0.3, y }, { x: 0, y: 0 }, world);
       expect(drop.position?.y).toBe(y);
       expect(y).toBeGreaterThan(getFloorStartY(world));
-      expect(y).toBeLessThan(getMovementBounds(world).minY);
+      expect(y).toBeGreaterThan(getMovementBounds(world).minY);
     });
   }
 

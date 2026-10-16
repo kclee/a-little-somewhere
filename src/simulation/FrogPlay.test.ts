@@ -183,7 +183,7 @@ describe('frog play', () => {
     expect(simulation.pet.position).toEqual(pausedPet);
   });
 
-  it('keeps an upper-floor drop in place while the dog approaches its reachable lane', () => {
+  it('keeps an upper-floor drop in place while the dog approaches it', () => {
     for (const [width, height] of [[1000, 800], [390, 767]] as const) {
       const { simulation, frog } = setup(width, height);
       const home = frog.getVisual(simulation.world);
@@ -198,7 +198,8 @@ describe('frog play', () => {
       tick(simulation, frog, 1);
       const playing = frog.getVisual(simulation.world);
       expect(playing.playing).toBe(true);
-      expect(playing.baseline).toBeGreaterThan(upperY + 35);
+      expect(playing.baseline).toBeGreaterThan(upperY - 10);
+      expect(playing.baseline).toBeLessThan(upperY + 35);
       expect(Math.abs(playing.x - simulation.pet.position.x)).toBeLessThan(90);
       tick(simulation, frog, 4);
       const settled = frog.getVisual(simulation.world);
