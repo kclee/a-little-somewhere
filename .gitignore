@@ -2,6 +2,8 @@ node_modules/
 dist/
 art-inbox/*
 !art-inbox/README.md
+/docs/images/
+/docs/videos/
 .vite/
 coverage/
 *.local

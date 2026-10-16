@@ -11,11 +11,36 @@ const WALL_WAG_SECONDS = 2.5;
 export const FROG_PLAY_SECONDS = 4.8;
 const JOG_DISTANCE = 150;
 const WALL_NEAR_DISTANCE = 10;
+const AUTONOMOUS_FACING_DEADZONE = 8;
 type ArrivalAction = 'attention' | 'wallWag' | 'donutRest' | 'frogPlay' | 'houseVisit';
+
+export function sampleAutonomousWalkDestination(
+  position: Point,
+  world: WorldSize,
+  random: RandomSource,
+): Point {
+  const bounds = getMovementBounds(world);
+  const minimumDistance = Math.min(55, Math.hypot(
+    bounds.maxX - bounds.minX, bounds.maxY - bounds.minY,
+  ) * 0.22);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const point = {
+      x: bounds.minX + random() * (bounds.maxX - bounds.minX),
+      y: bounds.minY + random() * (bounds.maxY - bounds.minY),
+    };
+    if (Math.hypot(point.x - position.x, point.y - position.y) >= minimumDistance) return point;
+  }
+
+  // A pathological or repeated random value should not produce a walk in place.
+  const x = position.x - bounds.minX > bounds.maxX - position.x ? bounds.minX : bounds.maxX;
+  const y = position.y - bounds.minY > bounds.maxY - position.y ? bounds.minY : bounds.maxY;
+  return { x, y };
+}
 
 export class PetBehaviorMachine {
   private stateTimeRemaining = 1.3;
   private movementTarget: Point | null = null;
+  private walkTarget: Point | null = null;
   private arrivalAction: ArrivalAction | null = null;
 
   public constructor(private readonly random: RandomSource = Math.random) {}
@@ -47,7 +72,9 @@ export class PetBehaviorMachine {
         const frameSpeed = Math.min(speed, distance / Math.max(deltaSeconds, 0.001));
         pet.velocityX = (dx / distance) * frameSpeed;
         pet.velocityY = (dy / distance) * frameSpeed;
-        if (Math.abs(dx) > 1) pet.facing = dx < 0 ? -1 : 1;
+        if (Math.abs(dx) > (this.arrivalAction ? 1 : AUTONOMOUS_FACING_DEADZONE)) {
+          pet.facing = dx < 0 ? -1 : 1;
+        }
       }
       return;
     }
@@ -69,20 +96,24 @@ export class PetBehaviorMachine {
     this.stateTimeRemaining -= deltaSeconds;
 
     if (pet.state === 'walk') {
-      pet.velocityX = pet.facing * WALK_SPEED;
-      pet.velocityY = 0;
-      const nextX = pet.position.x + pet.velocityX * deltaSeconds;
-      const bounds = getMovementBounds(world);
-      // Autonomous walks turn before the sprite clips the room edge. Only
-      // reverse while moving outward; otherwise the edge band causes a flip
-      // on every frame and leaves the pet walking in place.
-      const turnInset = Math.min(50, world.width * 0.12);
-      const turnLeft = pet.facing === -1 && nextX <= bounds.minX + turnInset;
-      const turnRight = pet.facing === 1 && nextX >= bounds.maxX - turnInset;
-      if (turnLeft || turnRight) {
-        pet.facing = turnLeft ? 1 : -1;
-        pet.velocityX = pet.facing * WALK_SPEED;
+      this.walkTarget = clampFloorPoint(
+        this.walkTarget ?? sampleAutonomousWalkDestination(pet.position, world, this.random),
+        world,
+      );
+      let dx = this.walkTarget.x - pet.position.x;
+      let dy = this.walkTarget.y - pet.position.y;
+      let distance = Math.hypot(dx, dy);
+      if (distance <= 3) {
+        this.walkTarget = sampleAutonomousWalkDestination(pet.position, world, this.random);
+        dx = this.walkTarget.x - pet.position.x;
+        dy = this.walkTarget.y - pet.position.y;
+        distance = Math.hypot(dx, dy);
       }
+      const frameSpeed = distance > 0
+        ? Math.min(WALK_SPEED, distance / Math.max(deltaSeconds, 0.001)) : 0;
+      pet.velocityX = distance > 0 ? (dx / distance) * frameSpeed : 0;
+      pet.velocityY = distance > 0 ? (dy / distance) * frameSpeed : 0;
+      if (Math.abs(dx) > AUTONOMOUS_FACING_DEADZONE) pet.facing = dx < 0 ? -1 : 1;
     } else {
       pet.velocityX = 0;
       pet.velocityY = 0;
@@ -158,6 +189,7 @@ export class PetBehaviorMachine {
     intent: 'moveTo' | 'wallMove' | 'donutMove' | 'frogMove' | 'houseMove',
     arrivalAction: ArrivalAction,
   ): void {
+    this.walkTarget = null;
     this.movementTarget = point;
     this.arrivalAction = arrivalAction;
     pet.intent = intent;
@@ -168,6 +200,7 @@ export class PetBehaviorMachine {
 
   private cancelMovement(pet: PetModel): void {
     this.movementTarget = null;
+    this.walkTarget = null;
     this.arrivalAction = null;
     pet.intent = 'autonomous';
   }
@@ -180,8 +213,7 @@ export class PetBehaviorMachine {
     }
 
     if (roll < 0.72) {
-      pet.facing = this.random() < 0.5 ? -1 : 1;
-      this.enterState('walk', 1.8 + this.random() * 2.3, pet);
+      this.enterAutonomousWalk(pet, world);
       return;
     }
 
@@ -189,12 +221,13 @@ export class PetBehaviorMachine {
       const destination = this.planJogDestination(pet, world);
       if (destination) {
         this.movementTarget = destination;
-        pet.facing = destination.x < pet.position.x ? -1 : 1;
+        if (Math.abs(destination.x - pet.position.x) > AUTONOMOUS_FACING_DEADZONE) {
+          pet.facing = destination.x < pet.position.x ? -1 : 1;
+        }
         this.enterState('jog', Number.POSITIVE_INFINITY, pet);
       } else {
         // Very narrow floor: a short walk looks better than a tiny dash.
-        pet.facing = this.random() < 0.5 ? -1 : 1;
-        this.enterState('walk', 1.8 + this.random() * 2.3, pet);
+        this.enterAutonomousWalk(pet, world);
       }
       return;
     }
@@ -218,10 +251,19 @@ export class PetBehaviorMachine {
     }
     const availableDistance = direction === -1 ? leftDistance : rightDistance;
     const preferredDistance = Math.max(JOG_SPEED * 1.2, world.width * (0.38 + this.random() * 0.08));
-    return { x: pet.position.x + direction * Math.min(availableDistance, preferredDistance), y: pet.position.y };
+    return {
+      x: pet.position.x + direction * Math.min(availableDistance, preferredDistance),
+      y: bounds.minY + this.random() * (bounds.maxY - bounds.minY),
+    };
+  }
+
+  private enterAutonomousWalk(pet: PetModel, world: WorldSize): void {
+    this.walkTarget = sampleAutonomousWalkDestination(pet.position, world, this.random);
+    this.enterState('walk', 1.8 + this.random() * 2.3, pet);
   }
 
   private enterState(state: PetState, duration: number, pet: PetModel): void {
+    if (state !== 'walk') this.walkTarget = null;
     pet.state = state;
     pet.stateElapsed = 0;
     pet.velocityX = 0;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PetModel, WorldSize } from '../core/types';
 import { getMovementBounds } from '../core/RoomGeometry';
-import { PetBehaviorMachine } from './PetBehaviorMachine';
+import { PetBehaviorMachine, sampleAutonomousWalkDestination } from './PetBehaviorMachine';
 
 const makePet = (): PetModel => ({
   position: { x: 150, y: 200 },
@@ -78,40 +78,59 @@ describe('PetBehaviorMachine', () => {
   });
 
   it.each([
-    { edge: 'left', startX: 58, facing: -1 as const, inward: 1 as const },
-    { edge: 'right', startX: 342, facing: 1 as const, inward: -1 as const },
-  ])('turns once and walks inward from the $edge edge', ({ startX, facing, inward }) => {
-    const pet = makePet();
-    pet.state = 'walk';
-    pet.position.x = startX;
-    pet.facing = facing;
-    const behavior = new PetBehaviorMachine(() => 0);
-    const directions: number[] = [];
-
-    for (let frame = 0; frame < 20; frame += 1) {
-      behavior.update(0.05, pet, world);
-      directions.push(pet.facing);
-      pet.position.x += pet.velocityX * 0.05;
+    { label: 'mobile', size: { width: 366, height: 767 } },
+    { label: 'desktop', size: { width: 1000, height: 800 } },
+  ])('samples the upper, middle, and lower $label walking floor without leaving bounds', ({ size }) => {
+    const bounds = getMovementBounds(size);
+    let seed = 42;
+    const random = () => {
+      seed = (1664525 * seed + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const position = { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
+    const thirds = [0, 0, 0];
+    for (let index = 0; index < 300; index += 1) {
+      const destination = sampleAutonomousWalkDestination(position, size, random);
+      expect(destination.x).toBeGreaterThanOrEqual(bounds.minX);
+      expect(destination.x).toBeLessThanOrEqual(bounds.maxX);
+      expect(destination.y).toBeGreaterThanOrEqual(bounds.minY);
+      expect(destination.y).toBeLessThanOrEqual(bounds.maxY);
+      expect(Math.hypot(destination.x - position.x, destination.y - position.y)).toBeGreaterThan(40);
+      const third = Math.min(2, Math.floor(3 * (destination.y - bounds.minY) / (bounds.maxY - bounds.minY)));
+      thirds[third] = (thirds[third] ?? 0) + 1;
     }
-
-    expect(directions).toEqual(Array(20).fill(inward));
-    expect((pet.position.x - startX) * inward).toBeGreaterThan(40);
+    expect(thirds.every((count) => count > 50)).toBe(true);
   });
 
-  it.each([
-    { startX: 110, facing: -1 as const, inward: 1 as const },
-    { startX: 290, facing: 1 as const, inward: -1 as const },
-  ])('turns before an autonomous walk clips the sprite at x=$startX', ({ startX, facing, inward }) => {
+  it('walks diagonally toward an upper-floor destination at normal speed', () => {
     const pet = makePet();
-    pet.state = 'walk';
-    pet.position.x = startX;
-    pet.facing = facing;
-    const behavior = new PetBehaviorMachine(() => 0);
-
+    const bounds = getMovementBounds(world);
+    pet.position = { x: 130, y: bounds.maxY - 15 };
+    const values = [0.5, 0.85, 0.05, 0.5];
+    const behavior = new PetBehaviorMachine(() => values.shift() ?? 0.5);
+    behavior.update(1.4, pet, world);
     behavior.update(0.1, pet, world);
+    expect(pet.state).toBe('walk');
+    expect(pet.velocityX).toBeGreaterThan(0);
+    expect(pet.velocityY).toBeLessThan(0);
+    expect(Math.hypot(pet.velocityX, pet.velocityY)).toBeCloseTo(48);
+  });
 
-    expect(pet.facing).toBe(inward);
-    expect(pet.velocityX * inward).toBeGreaterThan(0);
+  it('preserves facing during a mostly vertical autonomous walk', () => {
+    const pet = makePet();
+    const bounds = getMovementBounds(world);
+    pet.position = { x: 200, y: bounds.maxY - 15 };
+    pet.facing = -1;
+    const values = [0.5, 0.51, 0, 0.5];
+    const behavior = new PetBehaviorMachine(() => values.shift() ?? 0.5);
+    behavior.update(1.4, pet, world);
+    for (let frame = 0; frame < 8; frame += 1) {
+      behavior.update(0.1, pet, world);
+      pet.position.x += pet.velocityX * 0.1;
+      pet.position.y += pet.velocityY * 0.1;
+      expect(pet.facing).toBe(-1);
+    }
+    expect(pet.position.y).toBeLessThan(bounds.maxY - 20);
   });
 
   it('moves to a target, allows redirection, and resumes autonomy', () => {

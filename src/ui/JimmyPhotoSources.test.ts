@@ -3,9 +3,9 @@ import { getJimmyPhotos } from './JimmyPhotoSources';
 
 describe('Jimmy photo sources', () => {
   const photos = {
-    '../../art-inbox/2009_0818_161207.JPG': '/outdoor.jpg',
-    '../../art-inbox/20090312_103520_.JPG': '/house.jpg',
-    '../../art-inbox/20090315_220217_.JPG': '/donut.jpg',
+    '../assets/jimmy/jimmy-outdoors.jpg': '/outdoor.jpg',
+    '../assets/jimmy/jimmy-house.jpg': '/house.jpg',
+    '../assets/jimmy/jimmy-donut.jpg': '/donut.jpg',
   };
 
   it('keeps the three approved photos in a stable column order', () => {
@@ -23,7 +23,7 @@ describe('Jimmy photo sources', () => {
     ]);
   });
 
-  it('hides an incomplete private gallery instead of showing broken images', () => {
-    expect(getJimmyPhotos({ '../../art-inbox/2009_0818_161207.JPG': '/outdoor.jpg' })).toEqual([]);
+  it('hides an incomplete gallery instead of showing broken images', () => {
+    expect(getJimmyPhotos({ '../assets/jimmy/jimmy-outdoors.jpg': '/outdoor.jpg' })).toEqual([]);
   });
 });

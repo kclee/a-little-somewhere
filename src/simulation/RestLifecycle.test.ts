@@ -49,6 +49,9 @@ describe('shared rest and sleep lifecycle', () => {
     advance(pet, house, 30);
     expect(pet.pet.position).toEqual(position);
     expect(pet.pet.intent).toBe('restAtDonut');
+    expect(pet.pet.velocityX).toBe(0);
+    expect(pet.pet.velocityY).toBe(0);
+    expect(pet.pet.state).toBe('idle');
   });
 
   it('keeps the occupied house through sleep and a visual room switch', () => {
@@ -59,6 +62,9 @@ describe('shared rest and sleep lifecycle', () => {
     advance(pet, house, REST_SLEEP_SECONDS + 20);
     expect(pet.restPhase).toBe('sleeping');
     expect(pet.pet.position).toEqual(position);
+    expect(pet.pet.velocityX).toBe(0);
+    expect(pet.pet.velocityY).toBe(0);
+    expect(pet.pet.state).toBe('idle');
     expect(house.getVisual()).toEqual({ occupied: true, hidePet: true, wiggle: 0 });
     expect(house.getVisual(pet.restPhase === 'sleeping')).toMatchObject({ occupied: true, sleeping: true });
   });

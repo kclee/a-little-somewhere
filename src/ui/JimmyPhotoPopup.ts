@@ -1,10 +1,13 @@
 import { getJimmyPhotos } from './JimmyPhotoSources';
+import outdoorPhoto from '../assets/jimmy/jimmy-outdoors.jpg';
+import housePhoto from '../assets/jimmy/jimmy-house.jpg';
+import donutPhoto from '../assets/jimmy/jimmy-donut.jpg';
 
-const photoAssets = import.meta.glob<string>('../../art-inbox/*.JPG', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-});
+const photoAssets = {
+  '../assets/jimmy/jimmy-outdoors.jpg': outdoorPhoto,
+  '../assets/jimmy/jimmy-house.jpg': housePhoto,
+  '../assets/jimmy/jimmy-donut.jpg': donutPhoto,
+};
 
 export class JimmyPhotoPopup {
   private readonly toggle: HTMLButtonElement;

@@ -4,17 +4,16 @@ export interface JimmyPhoto {
   objectPosition: string;
 }
 
-// These private originals stay in art-inbox. Vite includes them only in local builds
-// where the files exist; a source-only GitHub build does not publish them.
+// These public copies have no camera metadata; the untouched originals stay in art-inbox.
 const PHOTO_FRAMING = [
-  { filename: '2009_0818_161207.JPG', objectFit: 'cover', objectPosition: '80% 50%' },
-  { filename: '20090312_103520_.JPG', objectFit: 'contain', objectPosition: '50% 50%' },
-  { filename: '20090315_220217_.JPG', objectFit: 'contain', objectPosition: '50% 50%' },
+  { filename: 'jimmy-outdoors.jpg', objectFit: 'cover', objectPosition: '80% 50%' },
+  { filename: 'jimmy-house.jpg', objectFit: 'contain', objectPosition: '50% 50%' },
+  { filename: 'jimmy-donut.jpg', objectFit: 'contain', objectPosition: '50% 50%' },
 ] as const;
 
 export function getJimmyPhotos(assets: Record<string, string>): JimmyPhoto[] {
   const photos = PHOTO_FRAMING.map(({ filename, objectFit, objectPosition }) => ({
-    url: assets[`../../art-inbox/${filename}`],
+    url: assets[`../assets/jimmy/${filename}`],
     objectFit,
     objectPosition,
   }));

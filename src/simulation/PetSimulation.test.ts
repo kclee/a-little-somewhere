@@ -49,6 +49,36 @@ describe('PetSimulation', () => {
     expect(simulation.pet.state).toBe('attention');
   });
 
+  it('autonomously travels into the upper mobile floor without a directed click', () => {
+    const values = [0.5, 0.8, 0, 0.5];
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => values.shift() ?? 0.5));
+    simulation.resize(366, 767);
+    const startY = simulation.pet.position.y;
+    for (let frame = 0; frame < 14; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('walk');
+    expect(simulation.pet.intent).toBe('autonomous');
+    for (let frame = 0; frame < 20; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.position.y).toBeLessThan(startY - 45);
+    expect(simulation.pet.position.y).toBeGreaterThanOrEqual(getMovementBounds(simulation.world).minY);
+    expect(Math.hypot(simulation.pet.velocityX, simulation.pet.velocityY)).toBeCloseTo(48);
+  });
+
+  it('lets a directed floor request override an autonomous walk without changing directed speed', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0.5));
+    simulation.resize(1000, 800);
+    for (let frame = 0; frame < 14; frame += 1) simulation.update(0.1);
+    expect(simulation.pet.state).toBe('walk');
+    simulation.update(0.1);
+    const start = { ...simulation.pet.position };
+    const target = { x: start.x + 100, y: start.y };
+    simulation.moveTo(target);
+    expect(simulation.pet.intent).toBe('moveTo');
+    simulation.update(0.1);
+    expect(simulation.pet.position.x - start.x).toBeCloseTo(4.8);
+    expect(simulation.pet.position.y).toBeCloseTo(start.y);
+    expect(simulation.pet.state).toBe('walk');
+  });
+
   it('skips movement for a nearby wall click and still holds pet attention', () => {
     const simulation = new PetSimulation();
     simulation.resize(390, 767);
@@ -152,14 +182,16 @@ describe('PetSimulation', () => {
     }
     expect(walk.pet.state).toBe('walk');
     expect(jog.pet.state).toBe('jog');
-    const walkStart = walk.pet.position.x;
-    const jogStart = jog.pet.position.x;
+    const walkStart = { ...walk.pet.position };
+    const jogStart = { ...jog.pet.position };
     for (let frame = 0; frame < 10; frame += 1) {
       walk.update(0.1);
       jog.update(0.1);
     }
-    expect(walk.pet.position.x - walkStart).toBeCloseTo(48);
-    expect(jog.pet.position.x - jogStart).toBeCloseTo(240);
+    const walkDistance = Math.hypot(walk.pet.position.x - walkStart.x, walk.pet.position.y - walkStart.y);
+    const jogDistance = Math.hypot(jog.pet.position.x - jogStart.x, jog.pet.position.y - jogStart.y);
+    expect(walkDistance).toBeCloseTo(48);
+    expect(jogDistance).toBeCloseTo(240);
   });
 
   it('keeps an autonomous desktop dash active until its planned destination', () => {
