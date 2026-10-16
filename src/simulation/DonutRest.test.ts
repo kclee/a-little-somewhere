@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { PetBehaviorMachine } from '../behavior/PetBehaviorMachine';
 import { clampFloorPoint } from '../core/RoomGeometry';
-import { getDonutRestPoint, getScenePropLayout } from '../render/SceneProps';
-import { PetSimulation, REST_SLEEP_SECONDS, REST_WAKE_SECONDS } from './PetSimulation';
+import { getDonutLyingOffset, getDonutRestPoint, getScenePropLayout } from '../render/SceneProps';
+import { DONUT_LYING_AWAKE_SECONDS, DONUT_SIT_SECONDS, PetSimulation, REST_WAKE_SECONDS } from './PetSimulation';
 
 function makeSimulation(width = 1000, height = 800): PetSimulation {
   const simulation = new PetSimulation(new PetBehaviorMachine(() => 0));
@@ -26,6 +26,7 @@ describe('donut resting', () => {
       expect(point.x).toBe(bed.x);
       expect(Math.abs(point.y - bed.y)).toBeLessThan(bed.height * 0.1);
       expect(clampFloorPoint(point, world)).toEqual(point);
+      expect(getDonutLyingOffset(world)).toBeCloseTo(bed.height * 0.14);
     }
   });
 
@@ -44,12 +45,17 @@ describe('donut resting', () => {
       expect(simulation.pet.state).toBe('idle');
       expect(simulation.pet.intent).toBe('restAtDonut');
       expect(simulation.restPhase).toBe('resting');
-      for (let frame = 0; frame < (REST_SLEEP_SECONDS - 0.2) / 0.1; frame += 1) simulation.update(0.1);
+      expect(simulation.donutPose).toBe('seated');
+      for (let frame = 0; frame < Math.ceil((DONUT_SIT_SECONDS + 0.1) / 0.1); frame += 1) simulation.update(0.1);
+      expect(simulation.donutPose).toBe('lyingAwake');
+      for (let frame = 0; frame < Math.floor((DONUT_LYING_AWAKE_SECONDS - 0.3) / 0.1); frame += 1) simulation.update(0.1);
       expect(simulation.pet.intent).toBe('restAtDonut');
       expect(simulation.restPhase).toBe('resting');
+      expect(simulation.donutPose).toBe('lyingAwake');
       expect(simulation.pet.position).toEqual(target);
       for (let frame = 0; frame < 300; frame += 1) simulation.update(0.1);
       expect(simulation.restPhase).toBe('sleeping');
+      expect(simulation.donutPose).toBe('lyingAsleep');
       expect(simulation.pet.intent).toBe('restAtDonut');
       expect(simulation.pet.position).toEqual(target);
     }
@@ -103,4 +109,26 @@ describe('donut resting', () => {
     expect(pet.pet.intent).toBe('autonomous');
     expect(pet.pet.state).toBe('attention');
   });
+
+  it.each(['seated', 'lyingAwake', 'lyingAsleep'] as const)(
+    'cancels the %s stage cleanly for a new floor request', (stage) => {
+      const simulation = makeSimulation(390, 767);
+      reachRest(simulation);
+      if (stage === 'lyingAwake') {
+        for (let i = 0; i < Math.ceil((DONUT_SIT_SECONDS + 0.1) / 0.1); i += 1) simulation.update(0.1);
+      }
+      if (stage === 'lyingAsleep') {
+        for (let i = 0; i < 80; i += 1) simulation.update(0.1);
+      }
+      expect(simulation.donutPose).toBe(stage);
+      simulation.moveTo({ x: 40, y: 600 });
+      expect(simulation.restPhase).toBe('waking');
+      expect(simulation.donutPose).toBeNull();
+      simulation.update(REST_WAKE_SECONDS + 0.02);
+      expect(simulation.restPhase).toBe('none');
+      expect(simulation.pet.intent).toBe('moveTo');
+      for (let i = 0; i < 80; i += 1) simulation.update(0.1);
+      expect(simulation.donutPose).toBeNull();
+    },
+  );
 });

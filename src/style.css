@@ -412,6 +412,16 @@ canvas:focus-visible {
 .hint-debug-controls button { cursor: pointer; }
 .hint-debug-controls button:disabled { cursor: default; opacity: 0.5; }
 
+.floor-sleep-debug {
+  left: 12px;
+  right: auto;
+  width: min(210px, calc(100vw - 24px));
+}
+
+.floor-sleep-debug .hint-debug-controls button:last-child {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 521px) and (max-height: 850px) {
   .jimmy-photo-scroll img {
     width: min(100%, 200px);

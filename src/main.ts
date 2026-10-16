@@ -14,6 +14,7 @@ import { ScenePicker } from './ui/ScenePicker';
 import { PetStatus } from './ui/PetStatus';
 import { JimmyPhotoPopup } from './ui/JimmyPhotoPopup';
 import { HintDebugPanel } from './ui/HintDebugPanel';
+import { FloorSleepDebugPanel } from './ui/FloorSleepDebugPanel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#room');
 const sceneControls = document.querySelector<HTMLElement>('[data-scene-controls]');
@@ -42,6 +43,9 @@ const scenePicker = new ScenePicker(sceneControls, initialScene.id, (sceneId) =>
 const jimmyPhotoPopup = new JimmyPhotoPopup();
 const hintDebug = new URLSearchParams(window.location.search).get('hintDebug') === '1'
   ? new HintDebugPanel(hints) : null;
+const floorSleepDebug = import.meta.env.DEV
+  && new URLSearchParams(window.location.search).get('floorSleepDebug') === '1'
+  ? new FloorSleepDebugPanel((pose) => simulation.previewFloorSleep(pose)) : null;
 
 const updateReplayAvailability = (): void => {
   replayButton.disabled = reducedMotion.matches;
@@ -55,6 +59,7 @@ replayButton.addEventListener('click', replayHints);
 
 const noteUserActivity = (event: Event): void => {
   if (hintDebug?.contains(event.target)) return;
+  if (floorSleepDebug?.contains(event.target)) return;
   if (event.target instanceof Node && replayButton.contains(event.target)) return;
   hints.noteInteraction();
 };
@@ -133,11 +138,14 @@ const frame = (now: number): void => {
   const safeDelta = Math.min(Math.max(deltaSeconds, 0), 0.25);
   if (houseVisit.update(safeDelta, simulation.pet)) simulation.completeHouseEntry();
   frogPlay.update(safeDelta, simulation.pet, simulation.world);
-  const sleeping = simulation.restPhase === 'sleeping';
+  const propSleeping = simulation.restPhase === 'sleeping';
+  const floorSleeping = simulation.pet.state === 'floorSleep';
+  const sleeping = propSleeping || floorSleeping;
   if (sleeping && !showingSleepExpression) {
     expressions.start({
       text: 'Zzz',
-      offset: simulation.restPlace === 'house' ? { x: 0.2, y: -0.25 } : { x: 0.27, y: -0.85 },
+      offset: floorSleeping ? { x: 0.25, y: -0.76 }
+        : simulation.restPlace === 'house' ? { x: 0.2, y: -0.25 } : { x: 0.27, y: -0.58 },
       startedAt: simulation.elapsed,
       duration: 2.4,
       loop: true,
@@ -170,9 +178,10 @@ const frame = (now: number): void => {
   const house = getScenePropLayout(simulation.world).house;
   renderer.render(
     simulation.pet, simulation.elapsed, expressions.sample(simulation.elapsed),
-    frogPlay.getVisual(simulation.world), houseVisit.getVisual(sleeping && simulation.restPlace === 'house'),
-    sleeping && simulation.restPlace === 'house' ? { x: house.x, y: house.baseline } : undefined,
-    sleeping && simulation.restPlace === 'donut',
+    frogPlay.getVisual(simulation.world), houseVisit.getVisual(propSleeping && simulation.restPlace === 'house'),
+    propSleeping && simulation.restPlace === 'house' ? { x: house.x, y: house.baseline }
+      : propSleeping && simulation.restPlace === 'donut' ? simulation.pet.position : undefined,
+    simulation.donutPose,
     hintFrames,
     holdInitialPose,
   );
@@ -186,6 +195,7 @@ window.addEventListener('pagehide', () => {
   scenePicker.destroy();
   jimmyPhotoPopup.destroy();
   hintDebug?.destroy();
+  floorSleepDebug?.destroy();
   replayButton.removeEventListener('click', replayHints);
   reducedMotion.removeEventListener('change', updateReplayAvailability);
   document.removeEventListener('pointerdown', noteUserActivity, true);

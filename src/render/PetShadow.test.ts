@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getPetShadowLayout } from './PetShadow';
+import { getPetShadowLayout, shouldDrawPetShadow } from './PetShadow';
 
 describe('pet shadow layout', () => {
   it('keeps standing states on the shared world-space ground line', () => {
@@ -41,6 +41,21 @@ describe('pet shadow layout', () => {
     expect(getPetShadowLayout('idle', 210).offsetX).toBe(0);
     expect(getPetShadowLayout('walk', 210).offsetX).toBe(0);
     expect(getPetShadowLayout('attention', 210).offsetX).toBe(0);
+    for (const state of ['floorRest', 'floorSleep', 'floorWake'] as const) {
+      expect(getPetShadowLayout(state, 210, 'lyingAwake')).toEqual(getPetShadowLayout('walk', 210));
+    }
+  });
+
+  it('hides only the floor-lying shadow in every lying phase', () => {
+    for (const state of ['floorRest', 'floorSleep', 'floorWake'] as const) {
+      expect(shouldDrawPetShadow(state)).toBe(false);
+    }
+    for (const state of ['idle', 'walk', 'jog', 'sit', 'attention', 'wallWag'] as const) {
+      expect(shouldDrawPetShadow(state)).toBe(true);
+    }
+    expect(shouldDrawPetShadow('idle', 'lyingAwake')).toBe(false);
+    expect(shouldDrawPetShadow('idle', 'lyingAsleep')).toBe(false);
+    expect(shouldDrawPetShadow('idle', 'front')).toBe(true);
   });
 });
 

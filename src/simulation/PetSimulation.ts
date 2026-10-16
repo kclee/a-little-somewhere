@@ -6,6 +6,9 @@ export type RestPhase = 'none' | 'entering' | 'resting' | 'sleeping' | 'waking';
 export type RestPlace = 'donut' | 'house';
 export const REST_SLEEP_SECONDS = 4;
 export const REST_WAKE_SECONDS = 0.18;
+export const DONUT_SIT_SECONDS = 1.25;
+export const DONUT_LYING_AWAKE_SECONDS = 4;
+export type DonutPose = 'seated' | 'lyingAwake' | 'lyingAsleep';
 
 type PetAction = {
   kind: 'attention' | 'move' | 'wall' | 'donut' | 'house' | 'frog';
@@ -75,7 +78,9 @@ export class PetSimulation {
       this.restElapsed = 0;
     } else if (this.restPhase === 'resting') {
       this.restElapsed += safeDelta;
-      if (this.restElapsed >= REST_SLEEP_SECONDS) this.restPhase = 'sleeping';
+      const sleepAfter = this.restPlace === 'donut'
+        ? DONUT_SIT_SECONDS + DONUT_LYING_AWAKE_SECONDS : REST_SLEEP_SECONDS;
+      if (this.restElapsed >= sleepAfter) this.restPhase = 'sleeping';
     }
   }
 
@@ -141,6 +146,18 @@ export class PetSimulation {
 
   public isRestingAt(place: RestPlace): boolean {
     return this.isResting() && this.restPlace === place;
+  }
+
+  public get donutPose(): DonutPose | null {
+    if (this.restPlace !== 'donut') return null;
+    if (this.restPhase === 'sleeping') return 'lyingAsleep';
+    if (this.restPhase !== 'resting') return null;
+    return this.restElapsed < DONUT_SIT_SECONDS ? 'seated' : 'lyingAwake';
+  }
+
+  public previewFloorSleep(state: 'awake' | 'asleep' | 'cycle' | 'off'): void {
+    if (this.restPhase !== 'none' || this.draggingFrog) return;
+    this.behavior.previewFloorSleep(state, this.pet);
   }
 
   private performOrWake(action: PetAction): void {

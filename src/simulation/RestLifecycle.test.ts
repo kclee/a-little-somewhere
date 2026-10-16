@@ -3,7 +3,7 @@ import { PetBehaviorMachine } from '../behavior/PetBehaviorMachine';
 import { getDonutRestPoint, getHouseVisitPoint } from '../render/SceneProps';
 import { FrogPlayController } from './FrogPlayController';
 import { HouseVisitController, HOUSE_WIGGLE_SECONDS } from './HouseVisitController';
-import { PetSimulation, REST_SLEEP_SECONDS, REST_WAKE_SECONDS } from './PetSimulation';
+import { DONUT_LYING_AWAKE_SECONDS, DONUT_SIT_SECONDS, PetSimulation, REST_SLEEP_SECONDS, REST_WAKE_SECONDS } from './PetSimulation';
 
 function setup(width = 1000, height = 800) {
   const pet = new PetSimulation(new PetBehaviorMachine(() => 0));
@@ -42,7 +42,7 @@ describe('shared rest and sleep lifecycle', () => {
     const { pet, house } = setup(width, height);
     enterDonut(pet, house);
     const position = { ...pet.pet.position };
-    advance(pet, house, REST_SLEEP_SECONDS - 0.2);
+    advance(pet, house, DONUT_SIT_SECONDS + DONUT_LYING_AWAKE_SECONDS - 0.2);
     expect(pet.restPhase).toBe('resting');
     advance(pet, house, 0.3);
     expect(pet.restPhase).toBe('sleeping');
@@ -98,7 +98,7 @@ describe('shared rest and sleep lifecycle', () => {
   it('uses the latest wake request without stacking actions', () => {
     const { pet, house } = setup();
     enterDonut(pet, house);
-    advance(pet, house, REST_SLEEP_SECONDS + 0.1);
+    advance(pet, house, DONUT_SIT_SECONDS + DONUT_LYING_AWAKE_SECONDS + 0.1);
     pet.moveTo({ x: 150, y: 700 });
     expect(pet.restPhase).toBe('waking');
     expect(pet.pet.intent).toBe('autonomous');
@@ -113,7 +113,7 @@ describe('shared rest and sleep lifecycle', () => {
   it('does not wake for frog drag or cancellation, but wakes on a valid drop', () => {
     const { pet, house, frog } = setup(390, 767);
     enterDonut(pet, house);
-    advance(pet, house, REST_SLEEP_SECONDS + 0.1);
+    advance(pet, house, DONUT_SIT_SECONDS + DONUT_LYING_AWAKE_SECONDS + 0.1);
     const home = frog.getVisual(pet.world);
     frog.beginDrag({ x: home.x, y: home.baseline }, pet.world);
     pet.beginFrogDrag();

@@ -123,6 +123,32 @@ export function getDonutRestPoint(world: WorldSize): Point {
   return { x: bed.x, y: bed.y + bed.height * 0.04 };
 }
 
+export function getDonutLyingOffset(world: WorldSize): number {
+  // Visual-only: settle the lying artwork into the cushion without moving its
+  // gameplay feet anchor or changing the bed's interaction target.
+  return getScenePropLayout(world).cushion.height * 0.14;
+}
+
+export function drawDonutFrontRim(
+  context: CanvasRenderingContext2D,
+  world: WorldSize,
+  images: ScenePropImages,
+): void {
+  const cushion = getScenePropLayout(world).cushion;
+  const { x, y, width, height } = cushion;
+  context.save();
+  context.beginPath();
+  context.ellipse(x, y, width / 2, height / 2, 0, 0, Math.PI * 2);
+  context.ellipse(x, y - height * 0.04, width * 0.28, height * 0.23, 0, 0, Math.PI * 2);
+  context.clip('evenodd');
+  context.beginPath();
+  context.rect(x - width / 2, y + height * 0.06, width, height * 0.44);
+  context.clip();
+  if (images.donutPetBed) drawScenePropSprite(context, cushion, images.donutPetBed, DONUT_PET_BED);
+  else drawDonutCushionFallback(context, cushion);
+  context.restore();
+}
+
 export function getHouseVisitPoint(world: WorldSize): Point {
   const house = getScenePropLayout(world).house;
   const compact = world.width < 560;

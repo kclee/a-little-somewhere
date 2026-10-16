@@ -1,6 +1,7 @@
 import type { PetModel } from '../core/types';
 
-export type MaltesePose = 'front' | 'frontHappy' | 'frontSleepy' | 'sideLeft' | 'sideRight' | 'back' | 'attention';
+export type MaltesePose = 'front' | 'frontHappy' | 'frontSleepy' | 'lyingAwake' | 'lyingAsleep'
+  | 'sideLeft' | 'sideRight' | 'back' | 'attention';
 
 interface SourceCrop {
   x: number;
@@ -21,6 +22,15 @@ const SHARED_FEET_ANCHOR = [0.5, 0.9375] as const;
 // canvas and anchor place those paws on the same ground line as front.png.
 const EXPRESSION_FEET_ANCHOR = [643 / 1280, 1179 / 1280] as const;
 const EXPRESSION_CROP = { x: 220, y: 120, width: 850, height: 1010 } as const;
+// Both lying images are pixel-aligned. Their opaque bounds are x≈124–1130,
+// y≈244–1131 on a 1254px canvas; the belly and paws rest on the shared line.
+const LYING_FEET_ANCHOR = [627 / 1254, 1131 / 1254] as const;
+const LYING_CROP = { x: 120, y: 240, width: 1015, height: 897 } as const;
+export const LYING_SCALE = 0.89;
+
+export function getMaltesePoseScale(pose: MaltesePose): number {
+  return pose === 'lyingAwake' || pose === 'lyingAsleep' ? LYING_SCALE : 1;
+}
 
 // The original crops retain their shared 512px coordinate system and exclude
 // isolated generation specks; expression crops preserve their own larger art.
@@ -42,6 +52,18 @@ export const MALTESE_SPRITES: Record<MaltesePose, MalteseSpriteDefinition> = {
     canvasSize: 1280,
     anchor: EXPRESSION_FEET_ANCHOR,
     crop: EXPRESSION_CROP,
+  },
+  lyingAwake: {
+    file: 'maltese_lying_awake_clean.png',
+    canvasSize: 1254,
+    anchor: LYING_FEET_ANCHOR,
+    crop: LYING_CROP,
+  },
+  lyingAsleep: {
+    file: 'maltese_lying_asleep_clean.png',
+    canvasSize: 1254,
+    anchor: LYING_FEET_ANCHOR,
+    crop: LYING_CROP,
   },
   sideLeft: {
     file: 'maltese_side_left.png',
@@ -71,18 +93,21 @@ export const MALTESE_SPRITES: Record<MaltesePose, MalteseSpriteDefinition> = {
 
 export function selectMaltesePose(
   pet: Pick<PetModel, 'state' | 'facing' | 'intent'>,
-  sleepingAtDonut = false,
+  donutPose: 'seated' | 'lyingAwake' | 'lyingAsleep' | null = null,
 ): MaltesePose {
+  if (pet.state === 'floorRest' || pet.state === 'floorWake') return 'lyingAwake';
+  if (pet.state === 'floorSleep') return 'lyingAsleep';
   if (pet.state === 'walk' || pet.state === 'jog') return pet.facing === -1 ? 'sideLeft' : 'sideRight';
   if (pet.state === 'sit' || pet.state === 'wallWag') return 'back';
   if (pet.state === 'attention') return 'attention';
-  if (sleepingAtDonut) return 'frontSleepy';
+  if (donutPose === 'lyingAwake' || donutPose === 'lyingAsleep') return donutPose;
   if (pet.intent === 'playWithFrog') return 'frontHappy';
   return 'front';
 }
 
 export function isFrontMaltesePose(pose: MaltesePose): boolean {
-  return pose === 'front' || pose === 'frontHappy' || pose === 'frontSleepy';
+  return pose === 'front' || pose === 'frontHappy' || pose === 'frontSleepy'
+    || pose === 'lyingAwake' || pose === 'lyingAsleep';
 }
 
 export function shouldMirrorMaltesePose(pose: MaltesePose, facing: -1 | 1): boolean {

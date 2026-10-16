@@ -1,10 +1,12 @@
 import type { PetModel, Point, WorldSize } from '../core/types';
 import type { HintFrame } from '../interaction/InteractionHintController';
+import type { DonutPose } from '../simulation/PetSimulation';
 import { getFloorStartY } from '../core/RoomGeometry';
 import { DEFAULT_WALK_FPS, WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
   MALTESE_SPRITES,
   MalteseSpriteSet,
+  getMaltesePoseScale,
   isFrontMaltesePose,
   selectMaltesePose,
   shouldMirrorMaltesePose,
@@ -15,14 +17,14 @@ import {
   MalteseWalkCycle,
   shouldMirrorWalkCycle,
 } from './MalteseWalkCycle';
-import { getPetShadowLayout } from './PetShadow';
+import { getPetShadowLayout, shouldDrawPetShadow } from './PetShadow';
 import { drawInteractionHands } from './InteractionHintVisual';
 import { drawExpressionEffect, type ExpressionFrame } from './ExpressionEffects';
 import { RearTailWagSpriteSet, REAR_TAIL_WAG_CYCLE_SECONDS, REAR_TAIL_WAG_START_SECONDS } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
 import { RoomClockTime, drawFeedingCorner, drawWallClock } from './RoomScenery';
 import { ScenePropAssets, type ScenePropImages } from './ScenePropAssets';
-import { drawFrogProp, drawSceneProps, getOccupiedHouseImage, getScenePropLayout, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
+import { drawDonutFrontRim, drawFrogProp, drawSceneProps, getDonutLyingOffset, getOccupiedHouseImage, getScenePropLayout, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
@@ -60,14 +62,17 @@ export class CanvasRenderer {
   public render(
     pet: PetModel, elapsed: number, expression?: ExpressionFrame | null,
     frog?: FrogVisual, house?: HouseVisual, expressionAnchor?: Point,
-    sleepingAtDonut = false,
+    donutPose: DonutPose | null = null,
     hints: readonly HintFrame[] = [],
     holdPetMotion = false,
   ): void {
     const propImages = this.scenePropAssets.getImages();
     this.drawRoom(elapsed, propImages, frog, house);
     if (!house?.hidePet || (house.occupied && !getOccupiedHouseImage(propImages, house))) {
-      this.drawPet(pet, holdPetMotion ? 0 : elapsed, sleepingAtDonut);
+      this.drawPet(pet, holdPetMotion ? 0 : elapsed, donutPose);
+    }
+    if (donutPose === 'lyingAwake' || donutPose === 'lyingAsleep') {
+      drawDonutFrontRim(this.context, { width: this.width, height: this.height }, propImages);
     }
     if (isFrogForeground(frog)) {
       drawFrogProp(this.context, { width: this.width, height: this.height }, propImages, frog);
@@ -471,11 +476,11 @@ export class CanvasRenderer {
     }
   }
 
-  private drawPet(pet: PetModel, elapsed: number, sleepingAtDonut: boolean): void {
+  private drawPet(pet: PetModel, elapsed: number, donutPose: DonutPose | null): void {
     if ((pet.state === 'walk' || pet.state === 'jog') && this.drawWalkCyclePet(pet)) return;
 
-    if (!this.drawSpritePet(pet, elapsed, sleepingAtDonut)) {
-      this.drawPlaceholderPet(pet, elapsed);
+    if (!this.drawSpritePet(pet, elapsed, donutPose)) {
+      this.drawPlaceholderPet(pet, elapsed, donutPose);
     }
   }
 
@@ -516,8 +521,8 @@ export class CanvasRenderer {
     return true;
   }
 
-  private drawSpritePet(pet: PetModel, elapsed: number, sleepingAtDonut: boolean): boolean {
-    const selectedPose = selectMaltesePose(pet, sleepingAtDonut);
+  private drawSpritePet(pet: PetModel, elapsed: number, donutPose: DonutPose | null): boolean {
+    const selectedPose = selectMaltesePose(pet, donutPose);
     const rearTailWagFrame = pet.state === 'sit' || pet.state === 'wallWag'
       ? this.rearTailWagSprites.getFrame(
         pet.state === 'wallWag'
@@ -538,22 +543,27 @@ export class CanvasRenderer {
     const attentive = pet.state === 'attention';
     const stepPhase = Math.sin(pet.stateElapsed * 9);
     const playing = pet.intent === 'playWithFrog';
+    const lying = pose === 'lyingAwake' || pose === 'lyingAsleep';
     const playPhase = pet.stateElapsed * Math.PI * 2 * 1.55;
     const bob = playing ? -Math.abs(Math.sin(playPhase)) * 2.2
-      : walking ? Math.abs(stepPhase) * -2.4 : Math.sin(elapsed * 2.1) * 0.65;
+      : walking ? Math.abs(stepPhase) * -2.4 : lying ? 0 : Math.sin(elapsed * 2.1) * 0.65;
     const spriteSize = Math.max(150, Math.min(210, Math.min(this.width * 0.38, this.height * 0.28)));
     const sourceScale = spriteSize / definition.canvasSize;
     const mirrorX = shouldMirrorMaltesePose(pose, pet.facing) ? -1 : 1;
+    const lyingScale = getMaltesePoseScale(pose);
     const scaleY = sitting ? 0.9 : walking ? 1 - Math.abs(stepPhase) * 0.012 : 1;
     const rotation = playing ? Math.sin(playPhase) * 0.016
       : walking ? stepPhase * 0.012 : attentive ? Math.sin(elapsed * 1.7) * 0.006 : 0;
 
-    this.drawPetShadow(pet, spriteSize, pose);
+    if (shouldDrawPetShadow(pet.state, pose)) this.drawPetShadow(pet, spriteSize, pose);
 
     ctx.save();
-    ctx.translate(pet.position.x, pet.position.y + bob);
+    const donutOffset = donutPose && lying
+      ? getDonutLyingOffset({ width: this.width, height: this.height }) : 0;
+    ctx.translate(pet.position.x, pet.position.y + bob + donutOffset);
     ctx.rotate(rotation);
-    ctx.scale(mirrorX, scaleY);
+    // Scale around the existing world-space feet anchor, not the image corner.
+    ctx.scale(mirrorX * lyingScale, scaleY * lyingScale);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
@@ -588,7 +598,7 @@ export class CanvasRenderer {
     ctx.restore();
   }
 
-  private drawPlaceholderPet(pet: PetModel, elapsed: number): void {
+  private drawPlaceholderPet(pet: PetModel, elapsed: number, donutPose: DonutPose | null): void {
     const ctx = this.context;
     const walking = pet.state === 'walk' || pet.state === 'jog';
     const sitting = pet.state === 'sit' || pet.state === 'wallWag';
@@ -600,13 +610,15 @@ export class CanvasRenderer {
     ctx.translate(pet.position.x, pet.position.y + bob);
     ctx.scale(pet.facing * scale, scale);
 
-    ctx.save();
-    ctx.scale(1, 0.28);
-    ctx.fillStyle = 'rgb(73 47 39 / 18%)';
-    ctx.beginPath();
-    ctx.arc(0, 34, sitting ? 43 : 49, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    if (shouldDrawPetShadow(pet.state, donutPose === 'seated' ? 'front' : donutPose ?? undefined)) {
+      ctx.save();
+      ctx.scale(1, 0.28);
+      ctx.fillStyle = 'rgb(73 47 39 / 18%)';
+      ctx.beginPath();
+      ctx.arc(0, 34, sitting ? 43 : 49, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     ctx.strokeStyle = '#e7ddd4';
     ctx.lineCap = 'round';

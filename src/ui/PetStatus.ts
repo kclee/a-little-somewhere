@@ -8,6 +8,9 @@ const MALTESE_PHRASES: Record<PetState, string> = {
   sit: '坐坐看風景',
   attention: '你叫我嗎？',
   wallWag: '看看那邊～',
+  floorRest: '躺一下～',
+  floorSleep: '呼呼睡著了～',
+  floorWake: '睡飽了～',
 };
 
 export function getPetStatus(pet: Pick<PetModel, 'state' | 'intent'>, restPhase: RestPhase = 'none'): string {

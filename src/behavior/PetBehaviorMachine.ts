@@ -12,7 +12,20 @@ export const FROG_PLAY_SECONDS = 4.8;
 const JOG_DISTANCE = 150;
 const WALL_NEAR_DISTANCE = 10;
 const AUTONOMOUS_FACING_DEADZONE = 8;
+export const FLOOR_SLEEP_CONFIG = {
+  chanceAfterIdle: 0.08,
+  awakeMinSeconds: 3,
+  awakeRangeSeconds: 2,
+  asleepMinSeconds: 8,
+  asleepRangeSeconds: 7,
+  wakeSeconds: 1,
+  cooldownSeconds: 45,
+} as const;
 type ArrivalAction = 'attention' | 'wallWag' | 'donutRest' | 'frogPlay' | 'houseVisit';
+
+export function isFloorSleepState(state: PetState): boolean {
+  return state === 'floorRest' || state === 'floorSleep' || state === 'floorWake';
+}
 
 export function sampleAutonomousWalkDestination(
   position: Point,
@@ -42,10 +55,12 @@ export class PetBehaviorMachine {
   private movementTarget: Point | null = null;
   private walkTarget: Point | null = null;
   private arrivalAction: ArrivalAction | null = null;
+  private floorSleepCooldown = 0;
 
   public constructor(private readonly random: RandomSource = Math.random) {}
 
   public update(deltaSeconds: number, pet: PetModel, world: WorldSize): void {
+    this.floorSleepCooldown = Math.max(0, this.floorSleepCooldown - deltaSeconds);
     pet.stateElapsed += deltaSeconds;
     if (this.movementTarget) {
       // A resize may have changed the valid floor area mid-dash.
@@ -94,6 +109,22 @@ export class PetBehaviorMachine {
       return;
     }
     this.stateTimeRemaining -= deltaSeconds;
+
+    if (isFloorSleepState(pet.state)) {
+      pet.velocityX = 0;
+      pet.velocityY = 0;
+      if (this.stateTimeRemaining <= 0) {
+        if (pet.state === 'floorRest') {
+          this.enterState('floorSleep', FLOOR_SLEEP_CONFIG.asleepMinSeconds
+            + this.random() * FLOOR_SLEEP_CONFIG.asleepRangeSeconds, pet);
+        } else if (pet.state === 'floorSleep') {
+          this.enterState('floorWake', FLOOR_SLEEP_CONFIG.wakeSeconds, pet);
+        } else {
+          this.enterState('idle', 1.2, pet);
+        }
+      }
+      return;
+    }
 
     if (pet.state === 'walk') {
       this.walkTarget = clampFloorPoint(
@@ -183,6 +214,22 @@ export class PetBehaviorMachine {
     this.startMovement(target, pet, 'wallMove', 'wallWag');
   }
 
+  // Used only by the opt-in development preview; normal naps enter through
+  // chooseAutonomousState and follow their finite timings.
+  public previewFloorSleep(state: 'awake' | 'asleep' | 'cycle' | 'off', pet: PetModel): void {
+    if (state === 'off') {
+      if (isFloorSleepState(pet.state)) this.enterState('idle', 1.2, pet);
+      return;
+    }
+    this.cancelMovement(pet);
+    if (state === 'cycle') {
+      this.enterState('floorRest', FLOOR_SLEEP_CONFIG.awakeMinSeconds
+        + this.random() * FLOOR_SLEEP_CONFIG.awakeRangeSeconds, pet);
+    } else {
+      this.enterState(state === 'awake' ? 'floorRest' : 'floorSleep', Number.POSITIVE_INFINITY, pet);
+    }
+  }
+
   private startMovement(
     point: Point,
     pet: PetModel,
@@ -207,6 +254,14 @@ export class PetBehaviorMachine {
 
   private chooseAutonomousState(pet: PetModel, world: WorldSize): void {
     const roll = this.random();
+    // A rare nap can begin only after a quiet idle period. The existing Walk
+    // and Dash roll ranges are unchanged; the nap replaces only a little Sit.
+    if (pet.intent === 'autonomous' && pet.state === 'idle'
+      && this.floorSleepCooldown === 0 && roll >= 1 - FLOOR_SLEEP_CONFIG.chanceAfterIdle) {
+      this.enterState('floorRest', FLOOR_SLEEP_CONFIG.awakeMinSeconds
+        + this.random() * FLOOR_SLEEP_CONFIG.awakeRangeSeconds, pet);
+      return;
+    }
     if (roll < 0.4) {
       this.enterState('idle', 1.4 + this.random() * 2.2, pet);
       return;
@@ -263,6 +318,9 @@ export class PetBehaviorMachine {
   }
 
   private enterState(state: PetState, duration: number, pet: PetModel): void {
+    if (isFloorSleepState(pet.state) && !isFloorSleepState(state)) {
+      this.floorSleepCooldown = FLOOR_SLEEP_CONFIG.cooldownSeconds;
+    }
     if (state !== 'walk') this.walkTarget = null;
     pet.state = state;
     pet.stateElapsed = 0;

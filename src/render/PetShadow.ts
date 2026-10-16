@@ -21,6 +21,11 @@ export interface PetShadowLayout {
   radiusY: number;
 }
 
+export function shouldDrawPetShadow(state: PetState, pose?: MaltesePose): boolean {
+  return state !== 'floorRest' && state !== 'floorSleep' && state !== 'floorWake'
+    && pose !== 'lyingAwake' && pose !== 'lyingAsleep';
+}
+
 export function getPetShadowLayout(
   state: PetState,
   spriteSize: number,
