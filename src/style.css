@@ -343,6 +343,66 @@ canvas:focus-visible {
   outline-offset: -6px;
 }
 
+.hint-debug {
+  position: fixed;
+  z-index: 2;
+  top: 76px;
+  right: 12px;
+  width: min(224px, calc(100vw - 24px));
+  max-height: calc(100dvh - 88px);
+  overflow: auto;
+  border: 1px solid rgb(148 107 88 / 25%);
+  border-radius: 15px;
+  background: rgb(255 248 238 / 96%);
+  box-shadow: 0 5px 24px rgb(91 58 46 / 18%);
+  color: #59443c;
+  font: 0.75rem/1.25 system-ui, sans-serif;
+}
+
+.hint-debug summary {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.hint-debug summary span {
+  margin-left: 5px;
+  color: #aa7b68;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.hint-debug dl {
+  display: grid;
+  grid-template-columns: 66px 1fr;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 0 12px 9px;
+}
+
+.hint-debug dt { color: #977a6d; }
+.hint-debug dd { margin: 0; overflow-wrap: anywhere; }
+.hint-debug-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.hint-debug-controls select { grid-column: 1 / -1; }
+.hint-debug-controls select,
+.hint-debug-controls button {
+  min-height: 30px;
+  border: 1px solid #d8bbaa;
+  border-radius: 9px;
+  background: #fffaf2;
+  color: #674a3d;
+  font: inherit;
+}
+
+.hint-debug-controls button { cursor: pointer; }
+.hint-debug-controls button:disabled { cursor: default; opacity: 0.5; }
+
 @media (min-width: 521px) and (max-height: 850px) {
   .jimmy-photo-scroll img {
     width: min(100%, 200px);

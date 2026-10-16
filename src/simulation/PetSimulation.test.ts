@@ -4,6 +4,28 @@ import { FLOOR_START_RATIO, getFloorStartY, getMovementBounds } from '../core/Ro
 import { PetSimulation } from './PetSimulation';
 
 describe('PetSimulation', () => {
+  it('holds the front-facing startup pose until the initial hints finish', () => {
+    const simulation = new PetSimulation(new PetBehaviorMachine(() => 0.5));
+    simulation.resize(390, 767);
+    const start = { ...simulation.pet.position };
+    expect(simulation.pet.state).toBe('idle');
+    for (let frame = 0; frame < 32; frame += 1) simulation.update(0.25, true);
+    expect(simulation.pet.position).toEqual(start);
+    expect(simulation.pet.state).toBe('idle');
+    expect(simulation.pet.stateElapsed).toBe(0);
+    for (let frame = 0; frame < 6; frame += 1) simulation.update(0.25);
+    expect(simulation.pet.state).toBe('walk');
+  });
+
+  it('allows a directed move to interrupt the startup hold', () => {
+    const simulation = new PetSimulation();
+    simulation.resize(390, 767);
+    const startX = simulation.pet.position.x;
+    simulation.moveTo({ x: startX + 70, y: simulation.pet.position.y });
+    simulation.update(0.1, true);
+    expect(simulation.pet.position.x).toBeGreaterThan(startX);
+  });
+
   it('keeps the pet within room bounds when resized', () => {
     const simulation = new PetSimulation();
     simulation.pet.position.x = 999;

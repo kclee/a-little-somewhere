@@ -45,11 +45,17 @@ export class PetSimulation {
     this.hasSized = true;
   }
 
-  public update(deltaSeconds: number): void {
+  public update(deltaSeconds: number, holdInitialPose = false): void {
     // Preserve real-time travel during short frame stalls, while still
     // bounding large jumps when a suspended tab resumes.
     const safeDelta = Math.min(Math.max(deltaSeconds, 0), 0.25);
     this.elapsed += safeDelta;
+    if (holdInitialPose && this.restPhase === 'none'
+      && this.pet.intent === 'autonomous' && this.pet.state === 'idle') {
+      this.pet.velocityX = 0;
+      this.pet.velocityY = 0;
+      return;
+    }
     if (this.restPhase === 'waking' && !this.draggingFrog) {
       this.restElapsed += safeDelta;
       if (this.restElapsed >= REST_WAKE_SECONDS) {

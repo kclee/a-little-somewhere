@@ -1,4 +1,5 @@
 import type { PetModel, Point, WorldSize } from '../core/types';
+import type { HintFrame } from '../interaction/InteractionHintController';
 import { getFloorStartY } from '../core/RoomGeometry';
 import { DEFAULT_WALK_FPS, WALK_SHEET } from '../walk-cycle/WalkCycleModel';
 import {
@@ -15,11 +16,12 @@ import {
   shouldMirrorWalkCycle,
 } from './MalteseWalkCycle';
 import { getPetShadowLayout } from './PetShadow';
+import { drawInteractionHands } from './InteractionHintVisual';
 import { drawExpressionEffect, type ExpressionFrame } from './ExpressionEffects';
 import { RearTailWagSpriteSet, REAR_TAIL_WAG_CYCLE_SECONDS, REAR_TAIL_WAG_START_SECONDS } from './RearTailWag';
 import { ROOM_SCENES, type RoomSceneConfig } from './RoomScene';
 import { ScenePropAssets, type ScenePropImages } from './ScenePropAssets';
-import { drawFrogProp, drawSceneProps, getOccupiedHouseImage, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
+import { drawFrogProp, drawSceneProps, getOccupiedHouseImage, getScenePropLayout, isFrogForeground, type FrogVisual, type HouseVisual } from './SceneProps';
 
 export class CanvasRenderer {
   private readonly context: CanvasRenderingContext2D;
@@ -57,11 +59,13 @@ export class CanvasRenderer {
     pet: PetModel, elapsed: number, expression?: ExpressionFrame | null,
     frog?: FrogVisual, house?: HouseVisual, expressionAnchor?: Point,
     sleepingAtDonut = false,
+    hints: readonly HintFrame[] = [],
+    holdPetMotion = false,
   ): void {
     const propImages = this.scenePropAssets.getImages();
     this.drawRoom(elapsed, propImages, frog, house);
     if (!house?.hidePet || (house.occupied && !getOccupiedHouseImage(propImages, house))) {
-      this.drawPet(pet, elapsed, sleepingAtDonut);
+      this.drawPet(pet, holdPetMotion ? 0 : elapsed, sleepingAtDonut);
     }
     if (isFrogForeground(frog)) {
       drawFrogProp(this.context, { width: this.width, height: this.height }, propImages, frog);
@@ -74,6 +78,10 @@ export class CanvasRenderer {
         spriteSize,
         expression,
       );
+    }
+    if (hints.length) {
+      const world = { width: this.width, height: this.height };
+      drawInteractionHands(this.context, world, pet, frog ?? getScenePropLayout(world).frog, hints);
     }
   }
 

@@ -2,6 +2,7 @@ import './style.css';
 import type { Point } from './core/types';
 import { PointerInput } from './input/PointerInput';
 import { getInteractionTarget } from './input/InteractionTarget';
+import { InteractionHintController, type HintTarget } from './interaction/InteractionHintController';
 import { CanvasRenderer } from './render/CanvasRenderer';
 import { ExpressionEffects } from './render/ExpressionEffects';
 import { resolveRoomScene, ROOM_SCENES } from './render/RoomScene';
@@ -12,6 +13,7 @@ import { HouseVisitController } from './simulation/HouseVisitController';
 import { ScenePicker } from './ui/ScenePicker';
 import { PetStatus } from './ui/PetStatus';
 import { JimmyPhotoPopup } from './ui/JimmyPhotoPopup';
+import { HintDebugPanel } from './ui/HintDebugPanel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#room');
 const sceneControls = document.querySelector<HTMLElement>('[data-scene-controls]');
@@ -25,13 +27,30 @@ const frogPlay = new FrogPlayController();
 const houseVisit = new HouseVisitController();
 const petStatus = new PetStatus(statusElement);
 const expressions = new ExpressionEffects();
+const hints = new InteractionHintController();
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const photoDialog = document.querySelector<HTMLDialogElement>('[data-photo-dialog]');
+const sceneMenu = document.querySelector<HTMLElement>('[data-scene-menu]');
 const scenePicker = new ScenePicker(sceneControls, initialScene.id, (sceneId) => {
+  hints.noteInteraction();
   renderer.setScene(ROOM_SCENES[sceneId]);
   const url = new URL(window.location.href);
   url.searchParams.set('room', sceneId);
   window.history.replaceState(null, '', url);
 });
 const jimmyPhotoPopup = new JimmyPhotoPopup();
+const hintDebug = new URLSearchParams(window.location.search).get('hintDebug') === '1'
+  ? new HintDebugPanel(hints) : null;
+
+const noteUserActivity = (event: Event): void => {
+  if (!hintDebug?.contains(event.target)) hints.noteInteraction();
+};
+const noteVisibilityChange = (): void => {
+  if (document.visibilityState !== 'visible') hints.noteInteraction();
+};
+document.addEventListener('pointerdown', noteUserActivity, true);
+document.addEventListener('keydown', noteUserActivity, true);
+document.addEventListener('visibilitychange', noteVisibilityChange);
 
 const resize = (): void => {
   const bounds = canvas.getBoundingClientRect();
@@ -96,7 +115,8 @@ let showingSleepExpression = false;
 const frame = (now: number): void => {
   const deltaSeconds = (now - previousTime) / 1000;
   previousTime = now;
-  simulation.update(deltaSeconds);
+  const holdInitialPose = !reducedMotion.matches && hints.isInitialShowcaseActive();
+  simulation.update(deltaSeconds, holdInitialPose);
   const safeDelta = Math.min(Math.max(deltaSeconds, 0), 0.25);
   if (houseVisit.update(safeDelta, simulation.pet)) simulation.completeHouseEntry();
   frogPlay.update(safeDelta, simulation.pet, simulation.world);
@@ -114,12 +134,34 @@ const frame = (now: number): void => {
   }
   showingSleepExpression = sleeping;
   petStatus.update(simulation.pet, simulation.restPhase);
+  const pet = simulation.pet;
+  const interactionActive = simulation.restPhase === 'entering' || simulation.restPhase === 'waking'
+    || !['autonomous', 'restAtDonut', 'insideHouse'].includes(pet.intent)
+    || pet.state === 'attention' || pet.state === 'wallWag';
+  // An in-app preview can remain visible while keyboard focus is elsewhere.
+  // Only pause hints when the page is actually hidden.
+  const pausedReason = document.visibilityState !== 'visible' ? 'Page hidden' : null;
+  const suppressionReason = frogPlay.isDragging() ? 'Frog drag'
+    : simulation.isHouseSequenceActive() ? 'House entry'
+      : photoDialog?.open === true ? 'Jimmy photos open'
+        : sceneMenu?.hidden === false ? 'Room picker open'
+          : interactionActive ? 'Pet interaction' : null;
+  const eligible: HintTarget[] = ['frog'];
+  if (!simulation.isRestingAt('donut')) eligible.push('donut');
+  if (!simulation.isRestingAt('house')) eligible.push('house');
+  if (simulation.restPhase === 'none' && (pet.state === 'idle' || pet.state === 'sit')) eligible.push('pet');
+  const hintFrames = hints.update(safeDelta, {
+    eligible, pausedReason, suppressionReason, reducedMotion: reducedMotion.matches,
+  });
+  hintDebug?.render(hints.getDebugState(), eligible);
   const house = getScenePropLayout(simulation.world).house;
   renderer.render(
     simulation.pet, simulation.elapsed, expressions.sample(simulation.elapsed),
     frogPlay.getVisual(simulation.world), houseVisit.getVisual(sleeping && simulation.restPlace === 'house'),
     sleeping && simulation.restPlace === 'house' ? { x: house.x, y: house.baseline } : undefined,
     sleeping && simulation.restPlace === 'donut',
+    hintFrames,
+    holdInitialPose,
   );
   requestAnimationFrame(frame);
 };
@@ -130,6 +172,10 @@ window.addEventListener('pagehide', () => {
   input.destroy();
   scenePicker.destroy();
   jimmyPhotoPopup.destroy();
+  hintDebug?.destroy();
+  document.removeEventListener('pointerdown', noteUserActivity, true);
+  document.removeEventListener('keydown', noteUserActivity, true);
+  document.removeEventListener('visibilitychange', noteVisibilityChange);
   resizeObserver.disconnect();
 });
 
