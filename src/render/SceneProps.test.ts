@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { DONUT_PET_BED, FROG_TOY, PET_HOUSE, PET_HOUSE_OCCUPIED, PET_HOUSE_OCCUPIED_SLEEPING } from './ScenePropAssets';
-import { getOccupiedHouseImage, getScenePropLayout, isFrogForeground } from './SceneProps';
+import { describe, expect, it, vi } from 'vitest';
+import { DONUT_PET_BED, FROG_TOY, PET_HOUSE, PET_HOUSE_OCCUPIED, PET_HOUSE_OCCUPIED_SLEEPING, type ScenePropImages } from './ScenePropAssets';
+import { drawSceneProps, getOccupiedHouseImage, getScenePropLayout, isFrogForeground } from './SceneProps';
 
 describe('responsive scene prop layout', () => {
   it.each([
@@ -101,6 +101,56 @@ describe('responsive scene prop layout', () => {
     expect(getOccupiedHouseImage(images, { ...occupied, sleeping: true })).toBe(asleep);
     expect(getOccupiedHouseImage({ ...images, petHouseOccupiedSleeping: null }, { ...occupied, sleeping: true })).toBe(awake);
     expect(getOccupiedHouseImage(images, { ...occupied, occupied: false })).toBeNull();
+  });
+
+  it.each([
+    { width: 390, height: 767 },
+    { width: 1334, height: 665 },
+  ])('rocks empty and occupied house around the same floor base at $width x $height', (world) => {
+    const house = {} as HTMLImageElement;
+    const occupiedHouse = {} as HTMLImageElement;
+    const donut = {} as HTMLImageElement;
+    const images: ScenePropImages = {
+      petHouse: house,
+      petHouseOccupied: occupiedHouse,
+      petHouseOccupiedSleeping: null,
+      donutPetBed: donut,
+      frogToy: null,
+    };
+    const context = {
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D;
+    const layout = getScenePropLayout(world).house;
+
+    drawSceneProps(context, world, images, undefined, false, {
+      occupied: false, hidePet: true, wiggle: 3 * Math.PI / 180, scaleX: 1.02, scaleY: 0.98,
+    });
+    expect(context.translate).toHaveBeenCalledWith(layout.x, layout.baseline + layout.height / 2);
+    expect(context.rotate).toHaveBeenCalledWith(3 * Math.PI / 180);
+    expect(context.scale).toHaveBeenCalledWith(1.02, 0.98);
+    expect(context.drawImage).toHaveBeenCalledWith(
+      house, PET_HOUSE.crop.x, PET_HOUSE.crop.y, PET_HOUSE.crop.width, PET_HOUSE.crop.height,
+      -layout.width / 2, -layout.height, layout.width, layout.height,
+    );
+    expect(context.save).toHaveBeenCalledTimes(vi.mocked(context.restore).mock.calls.length);
+
+    vi.mocked(context.drawImage).mockClear();
+    drawSceneProps(context, world, images, undefined, false, {
+      occupied: true, hidePet: true, wiggle: 0,
+    });
+    expect(context.rotate).toHaveBeenLastCalledWith(0);
+    expect(context.scale).toHaveBeenLastCalledWith(1, 1);
+    expect(context.drawImage).toHaveBeenCalledWith(
+      occupiedHouse, PET_HOUSE_OCCUPIED.crop.x, PET_HOUSE_OCCUPIED.crop.y,
+      PET_HOUSE_OCCUPIED.crop.width, PET_HOUSE_OCCUPIED.crop.height,
+      -layout.width / 2, -layout.height, layout.width, layout.height,
+    );
+    expect(context.save).toHaveBeenCalledTimes(vi.mocked(context.restore).mock.calls.length);
   });
 
 });

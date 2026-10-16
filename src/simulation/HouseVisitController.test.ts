@@ -45,7 +45,7 @@ describe('pet-house visit', () => {
     const arrivalPosition = { ...simulation.pet.position };
     expect(visit.getVisual()).toMatchObject({ hidePet: true, occupied: false });
     tick(simulation, visit, HOUSE_WIGGLE_SECONDS / 2);
-    expect(Math.abs(visit.getVisual().wiggle)).toBeLessThan(0.014);
+    expect(visit.getVisual().occupied).toBe(false);
     tick(simulation, visit, HOUSE_WIGGLE_SECONDS);
     expect(visit.getVisual()).toEqual({ occupied: true, hidePet: true, wiggle: 0 });
     expect(simulation.restPhase).toBe('resting');
@@ -55,6 +55,31 @@ describe('pet-house visit', () => {
     expect(simulation.pet.position).toEqual(arrivalPosition);
     expect(visit.getVisual()).toEqual({ occupied: true, hidePet: true, wiggle: 0 });
     expect(visit.getVisual(true)).toEqual({ occupied: true, hidePet: true, wiggle: 0, sleeping: true });
+  });
+
+  it('rocks and squashes for 2.5 decreasing oscillations, then returns exactly to neutral', () => {
+    const visit = new HouseVisitController();
+    const enteringPet = { intent: 'insideHouse' } as PetSimulation['pet'];
+    visit.update(0, enteringPet);
+    expect(visit.getVisual()).toMatchObject({ occupied: false, hidePet: true, wiggle: 0, scaleX: 1, scaleY: 1 });
+
+    const swings: number[] = [];
+    let lastProgress = 0;
+    for (const progress of [0.1, 0.3, 0.5, 0.7, 0.9]) {
+      visit.update(HOUSE_WIGGLE_SECONDS * (progress - lastProgress), enteringPet);
+      lastProgress = progress;
+      const visual = visit.getVisual();
+      expect(visual.hidePet).toBe(true);
+      expect(visual.occupied).toBe(false);
+      expect(visual.scaleX).toBeCloseTo(1 + visual.wiggle / (3 * Math.PI / 180) * 0.02);
+      expect(visual.scaleY).toBeCloseTo(2 - visual.scaleX!);
+      swings.push(visual.wiggle);
+    }
+    expect(Math.abs(swings[0]!)).toBeGreaterThan(2.5 * Math.PI / 180);
+    expect(swings.map(Math.sign)).toEqual([1, -1, 1, -1, 1]);
+    expect(swings.map(Math.abs)).toEqual([...swings.map(Math.abs)].sort((a, b) => b - a));
+    expect(visit.update(HOUSE_WIGGLE_SECONDS * 0.1, enteringPet)).toBe(true);
+    expect(visit.getVisual()).toEqual({ occupied: true, hidePet: true, wiggle: 0 });
   });
 
   it('ignores repeated house clicks during approach and the entry wiggle', () => {

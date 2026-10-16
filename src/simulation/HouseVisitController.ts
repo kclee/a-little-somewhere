@@ -1,7 +1,9 @@
 import type { PetModel } from '../core/types';
 import type { HouseVisual } from '../render/SceneProps';
 
-export const HOUSE_WIGGLE_SECONDS = 0.5;
+export const HOUSE_WIGGLE_SECONDS = 0.7;
+const HOUSE_ROCK_RADIANS = 3 * Math.PI / 180;
+const HOUSE_SQUASH = 0.02;
 
 export class HouseVisitController {
   private active = false;
@@ -33,10 +35,13 @@ export class HouseVisitController {
         : { occupied: true, hidePet: true, wiggle: 0 };
     }
     const progress = this.elapsed / HOUSE_WIGGLE_SECONDS;
+    const sway = Math.sin(progress * Math.PI * 5) * (1 - progress);
     return {
       occupied: false,
       hidePet: true,
-      wiggle: Math.sin(progress * Math.PI * 4) * (1 - progress) * 0.014,
+      wiggle: sway * HOUSE_ROCK_RADIANS,
+      scaleX: 1 + sway * HOUSE_SQUASH,
+      scaleY: 1 - sway * HOUSE_SQUASH,
     };
   }
 

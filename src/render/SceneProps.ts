@@ -29,6 +29,8 @@ export interface HouseVisual {
   occupied: boolean;
   hidePet: boolean;
   wiggle: number;
+  scaleX?: number;
+  scaleY?: number;
   sleeping?: boolean;
 }
 
@@ -140,9 +142,17 @@ export function drawSceneProps(
 ): void {
   const layout = getScenePropLayout(world);
   context.save();
-  context.translate(layout.house.x, layout.house.baseline);
+  // The artwork is centered on `baseline`; pivot around its bottom-center
+  // instead, so rocking and squash leave the house planted on the floor.
+  context.translate(layout.house.x, layout.house.baseline + layout.house.height / 2);
   context.rotate(houseVisual?.wiggle ?? 0);
-  const localHouse = { x: 0, baseline: 0, width: layout.house.width, height: layout.house.height };
+  context.scale(houseVisual?.scaleX ?? 1, houseVisual?.scaleY ?? 1);
+  const localHouse = {
+    x: 0,
+    baseline: -layout.house.height / 2,
+    width: layout.house.width,
+    height: layout.house.height,
+  };
   const occupiedImage = getOccupiedHouseImage(images, houseVisual);
   if (occupiedImage) {
     drawScenePropSprite(context, localHouse, occupiedImage, PET_HOUSE_OCCUPIED);
