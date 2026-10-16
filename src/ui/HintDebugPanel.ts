@@ -61,7 +61,7 @@ export class HintDebugPanel {
 
   public render(state: HintDebugState, eligible: readonly HintTarget[]): void {
     this.values.state.textContent = state.status + (state.preview ? ' (preview)' : '');
-    this.values.phase.textContent = state.phase === 'Initial showcase'
+    this.values.phase.textContent = state.phase === 'Initial showcase' || state.phase === 'Manual replay'
       ? `${state.phase} (${(state.phaseRemainingMs / 1_000).toFixed(1)}s)` : state.phase;
     this.values.next.textContent = state.nextTarget === 'all' ? 'All four'
       : state.nextTarget ? TARGET_LABELS[state.nextTarget] : 'None eligible';
@@ -71,7 +71,7 @@ export class HintDebugPanel {
     this.values.previous.textContent = state.previousTarget ? TARGET_LABELS[state.previousTarget] : '—';
     this.values.reason.textContent = state.suppressionReason ?? '—';
     this.showButton.disabled = !eligible.includes(this.select.value as HintTarget)
-      || state.status === 'Suppressed' || state.status === 'Paused';
+      || state.status === 'Suppressed' || state.status === 'Paused' || state.phase === 'Manual replay';
   }
 
   public destroy(): void {

@@ -18,7 +18,8 @@ import { HintDebugPanel } from './ui/HintDebugPanel';
 const canvas = document.querySelector<HTMLCanvasElement>('#room');
 const sceneControls = document.querySelector<HTMLElement>('[data-scene-controls]');
 const statusElement = document.querySelector<HTMLElement>('[data-pet-status]');
-if (!canvas || !sceneControls || !statusElement) throw new Error('Room UI was not found.');
+const replayButton = document.querySelector<HTMLButtonElement>('[data-hint-replay]');
+if (!canvas || !sceneControls || !statusElement || !replayButton) throw new Error('Room UI was not found.');
 
 const initialScene = resolveRoomScene(window.location.search);
 const renderer = new CanvasRenderer(canvas, initialScene);
@@ -42,8 +43,20 @@ const jimmyPhotoPopup = new JimmyPhotoPopup();
 const hintDebug = new URLSearchParams(window.location.search).get('hintDebug') === '1'
   ? new HintDebugPanel(hints) : null;
 
+const updateReplayAvailability = (): void => {
+  replayButton.disabled = reducedMotion.matches;
+};
+const replayHints = (): void => {
+  hints.replayShowcase();
+};
+updateReplayAvailability();
+reducedMotion.addEventListener('change', updateReplayAvailability);
+replayButton.addEventListener('click', replayHints);
+
 const noteUserActivity = (event: Event): void => {
-  if (!hintDebug?.contains(event.target)) hints.noteInteraction();
+  if (hintDebug?.contains(event.target)) return;
+  if (event.target instanceof Node && replayButton.contains(event.target)) return;
+  hints.noteInteraction();
 };
 const noteVisibilityChange = (): void => {
   if (document.visibilityState !== 'visible') hints.noteInteraction();
@@ -173,6 +186,8 @@ window.addEventListener('pagehide', () => {
   scenePicker.destroy();
   jimmyPhotoPopup.destroy();
   hintDebug?.destroy();
+  replayButton.removeEventListener('click', replayHints);
+  reducedMotion.removeEventListener('change', updateReplayAvailability);
   document.removeEventListener('pointerdown', noteUserActivity, true);
   document.removeEventListener('keydown', noteUserActivity, true);
   document.removeEventListener('visibilitychange', noteVisibilityChange);
